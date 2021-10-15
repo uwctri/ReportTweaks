@@ -22,6 +22,18 @@ ReportTweaks.html.checkboxes = `
         </div>
     </div>
 </div>`;
+ReportTweaks.html.filters = `
+    <span class="dataTables_filter">
+        <label><input type="text" placeholder="Maximum" id="tableFilterMax" tabindex=3></label>
+    </span>
+    <span class="dataTables_filter">
+        <label><input type="text" placeholder="Minimum" id="tableFilterMin" tabindex=2></label>
+    </span>
+    <span class="dataTables_filter">
+        <select id="minmaxpivot">
+            <option value="" selected disabled hidden>Filter Range On...</option>
+        </select>
+    </span>`;
 ReportTweaks.css = `
 <style>
     #copyDataBtn{
@@ -34,7 +46,7 @@ ReportTweaks.css = `
         border-color:#ffeeba!important;
     }
     #report_table{
-        min-width: 750px;
+        min-width: 900px;
     }
 </style>`;
 
@@ -54,6 +66,27 @@ ReportTweaks.fn.insertCopyBtn = function() {
 
 ReportTweaks.fn.insertCheckboxes = function() {
     $("#report_div .d-print-none").eq(1).append(ReportTweaks.html.checkboxes);
+
+    $("#hideRepeatCols").on('click', function() {
+        if ( $(this).is(':checked') )
+            ReportTweaks.fn.hideRepeatCols();
+        else 
+            ReportTweaks.fn.showRepeatCols();
+    });
+    $("#hideEventCol").on('click', function() {
+        if ( $(this).is(':checked') )
+            ReportTweaks.fn.hideEventCol();
+        else 
+            ReportTweaks.fn.showEventCol();
+    });
+}
+
+ReportTweaks.fn.insertFilters = function() {
+    $(".dataTables-rc-searchfilter-parent").css('width','100%');
+    $(".dataTables-rc-searchfilter-parent .col-sm-6").first().remove();
+    $(".dataTables-rc-searchfilter-parent .col-sm-6").removeClass('col-sm-6').addClass('col-12 mt-1');
+    $("#report_table_filter input").css('margin-right','3px');
+    $("#report_table_filter").prepend(ReportTweaks.html.filters);
 }
 
 ReportTweaks.fn.copyData = function() {
@@ -141,10 +174,12 @@ ReportTweaks.fn.hideRepeatCols = function() {
             $(`#report_table td:nth-child(${i+1})`).addClass('repeatCol').hide();
         }
     });
+    ReportTweaks.fn.updateTableWidth();
 }
 
 ReportTweaks.fn.showRepeatCols = function() {
     $("#report_table th.repeatCol, #report_table td.repeatCol").show();
+    ReportTweaks.fn.updateTableWidth();
 }
 
 ReportTweaks.fn.hideEventCol = function(remove) {
@@ -157,10 +192,21 @@ ReportTweaks.fn.hideEventCol = function(remove) {
                 $(`#report_table td:nth-child(${i+1})`).addClass('eventCol').hide();
         }
     });
+    ReportTweaks.fn.updateTableWidth();
 }
 
 ReportTweaks.fn.showEventCol = function() {
     $("#report_table th.eventCol, #report_table td.eventCol").show();
+    ReportTweaks.fn.updateTableWidth();
+}
+
+ReportTweaks.fn.updateTableWidth = function() {
+    // Updates the width of the page Selector above the table OR the filter area when 1 page
+    if ( $(".report_pagenum_div").length )
+        $(".report_pagenum_div").css('width', $("#report_table").css('width') );
+    else
+        $("#report_table_filter").css('width', Number($("#report_table").css('width').replace('px',''))-30+'px' );
+    ReportTweaks.fn.moveTableHeadersToggle();
 }
 
 ReportTweaks.fn.saveCookie = function() {
@@ -169,14 +215,36 @@ ReportTweaks.fn.saveCookie = function() {
     Cookies.set(`ReportTweaks${getParameterByName('report_id')}`,JSON.stringify(saveCookie),{sameSite: 'lax'});
 }
 
+ReportTweaks.fn.moveTableHeadersToggle = function() {
+    // Wait for load
+    if ( !$("#FixedTableHdrsEnable").length ) {
+        window.requestAnimationFrame(ReportTweaks.fn.moveTableHeadersToggle);
+        return;
+    }
+    // Link hasn't been moved
+    if ( !$("#FixedTableHdrsEnable").hasClass('ReportTweaksAdjusted') ) {
+        // Multi page report or Single Page tweak
+        if ( $(".report_pagenum_div").length ) {
+            $("#FixedTableHdrsEnable").insertAfter('#copyDataBtn').addClass('ReportTweaksAdjusted');
+        } else {
+            $("#FixedTableHdrsEnable").prependTo('#report_table_filter').addClass('ReportTweaksAdjusted');
+        }
+    }
+    // Multi page report tweak for sizing
+    if ( $(".report_pagenum_div").length )
+        $("#FixedTableHdrsEnable").css('margin-left', Number($("#report_table").css('width').replace('px',''))-200+'px' );
+}
+
 ReportTweaks.fn.waitForLoad = function() {
     if ( $("#report_table_wrapper").length != 1 ||      // Table Still Loading
          $("#report_div .d-print-none").length < 2 ) {  // Extra check
         window.requestAnimationFrame(ReportTweaks.fn.waitForLoad);
+        return;
     }
     // Build checkboxes
     ReportTweaks.fn.insertCopyBtn();
     ReportTweaks.fn.insertCheckboxes();
+    ReportTweaks.fn.insertFilters();
     
     // Load Report Config
     let settings = ReportTweaks.settings[getParameterByName('report_id')];
@@ -193,20 +261,6 @@ ReportTweaks.fn.waitForLoad = function() {
         }
     }
     
-    // Attach events
-    $("#hideRepeatCols").on('click', function() {
-        if ( $(this).is(':checked') )
-            ReportTweaks.fn.hideRepeatCols();
-        else 
-            ReportTweaks.fn.showRepeatCols();
-    });
-    $("#hideEventCol").on('click', function() {
-        if ( $(this).is(':checked') )
-            ReportTweaks.fn.hideEventCol();
-        else 
-            ReportTweaks.fn.showEventCol();
-    });
-    
     // Load Cookie
     let cookie = JSON.parse(Cookies.get(`ReportTweaks${getParameterByName('report_id')}`) || '{}');
     if ($.isEmptyObject(cookie) && location.host == "ctri-redcap.dom.wisc.edu") { // Force custom defaults
@@ -216,12 +270,27 @@ ReportTweaks.fn.waitForLoad = function() {
     
     // Setup Cookie Saving
     $("#checkboxGrouper input").on('click', ReportTweaks.fn.saveCookie);
-    
-    // Todo on state change re-load the EM
-    $(".report_page_select").on('change', ReportTweaks.fn.waitForLoad);
 }
 
 $(document).ready(function () {
     $('head').append(ReportTweaks.css);
     ReportTweaks.fn.waitForLoad();
 });
+
+// You can't avoid polling due to page changing using history push state
+var oldHref = document.location.href;
+window.onload = function() {
+    var bodyList = document.querySelector("body");
+    var observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (oldHref != document.location.href) {
+                oldHref = document.location.href;
+                ReportTweaks.fn.waitForLoad();
+            }
+        });
+    });
+    observer.observe(bodyList, {
+        childList: true,
+        subtree: true
+    });
+};
