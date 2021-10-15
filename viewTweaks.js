@@ -2,21 +2,21 @@ ReportTweaks.fn = {};
 ReportTweaks.html = {};
 ReportTweaks.html.copyBtn = `<a href="#" class="btn btn-secondary btn-sm mb-1" role="button" id="copyDataBtn"><i class="fas fa-clipboard"></i></a>`;
 ReportTweaks.html.checkboxes = `
-<div class="container p-0" style="max-width:440px" id="checkboxGrouper">
+<div class="container p-0 mt-1" style="max-width:420px" id="checkboxGrouper">
     <div class="row no-gutters">
-        <div class="col-md-6">
+        <div class="col-md-5">
             <span class="font-weight-bold">Hide Event Column: </span>
             <input type='checkbox' class='checkbox-inline' id='hideEventCol'>
         </div>
-        <div class="col-md-6">
+        <div class="col-md-7">
             <span class="font-weight-bold">Hide Repeating Form Columns: </span>
             <input type='checkbox' class='checkbox-inline' id='hideRepeatCols'>
         </div>
-        <div class="col-md-6">
+        <div class="col-md-5" style="display:none">
             <span class="font-weight-bold">Option Three: </span>
             <input type='checkbox' class='checkbox-inline' id='OptionThree'>
         </div>
-        <div class="col-md-6">
+        <div class="col-md-7" style="display:none">
             <span class="font-weight-bold">Option Four: </span>
             <input type='checkbox' class='checkbox-inline' id='OptionFour'>
         </div>
@@ -180,17 +180,17 @@ ReportTweaks.fn.waitForLoad = function() {
     
     // Load Report Config
     let settings = ReportTweaks.settings[getParameterByName('report_id')];
-    if ( !settings )
-        return;
-    if ( settings.merge ) {
-        ReportTweaks.fn.mergeRows();
-    }
-    if ( settings.removeEmpty ) {
-        ReportTweaks.fn.removeEmptyRows();
-    }
-    if ( settings.removeEvent ) {
-        ReportTweaks.fn.hideEventCol(true);
-        $("#hideEventCol").prop('disabled',true).prop('checked',false);
+    if ( settings ) {
+        if ( settings.merge ) {
+            ReportTweaks.fn.mergeRows();
+        }
+        if ( settings.removeEmpty ) {
+            ReportTweaks.fn.removeEmptyRows();
+        }
+        if ( settings.removeEvent ) {
+            ReportTweaks.fn.hideEventCol(true);
+            $("#hideEventCol").prop('disabled',true).prop('checked',false);
+        }
     }
     
     // Attach events
