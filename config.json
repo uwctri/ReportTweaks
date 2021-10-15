@@ -1,0 +1,30 @@
+{
+    "name": "Report Tweaks",
+    "description": "Configurable Display Enhancments for Redcap Reports",
+    "namespace": "UWMadison\\ReportTweaks",
+    "authors": [
+        {
+            "name": "Adam Nunez",
+            "email": "Adam.Nunez@ctri.wisc.edu",
+            "institution": "UW Madison - Center for Tobacco Research and Intervention "
+        }
+    ],
+    "permissions": [
+        "redcap_every_page_top"
+    ],
+    "project-settings": [
+        {
+            "key": "info",
+            "name": "This module is configured via the edit report screen. Individual user configuration is saved via a cookie on the user's browser.<br><br><a>Click here to view all saved configuration.</a>",
+            "type": "descriptive"
+        },
+        {
+            "key": "json",
+            "name": "<b>Json Object</b>",
+            "type": "textarea"
+        }
+    ],
+    "compatibility": {
+        "redcap-version-min": "11.0.0"
+    }
+}
