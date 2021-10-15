@@ -138,34 +138,36 @@ ReportTweaks.fn.mergeRows = function() {
         $(recordCol).click();
     recordCol = $(recordCol).index();
     let prev = -1;
-    $("#report_table tr").each(function(index,row){
+    $("#report_table tr:visible").each(function(index,row){
         if ( index == 0)// Header
             return;
-        let id = $(row).find('td a').eq(recordCol).text();
-        if (id != prev ) {
-            prev = id;
-            return;           // TODO Test, Make sure this works when Redcap_ variables are visible
-        }
-        let currData = $(row).find(`td:visible:not(:eq(${recordCol}))`).map((_,x)=>$(x).text()).toArray();
-        let prevData = $(row).prevAll(':visible').first().find(`td:visible:not(:eq(${recordCol}))`).map((_,x)=>$(x).text()).toArray();
-        let newData = ReportTweaks.fn.mergeArray(currData,prevData);
-        if ( newData ) {
-            $(row).find(`td:visible:not(:eq(${recordCol}))`).each( function(index,el) {
-                if ( $(el).text() != newData[index] ) {
-                    $(el).removeClass('nodesig').text(newData[index]);
-                    $(el).addClass('squashedPopCell');
-                }
-            });
-            $(row).prevAll(':visible').first().addClass('squashRowHide').hide();
-        }
+        let id = $(row).find('td').eq(recordCol).find('a').text();
+        if (id != prev ) { prev = id; return;} 
         prev = id;
+        let currData = $(row).find("td").map((_,x)=>$(x).text()).toArray();
+        let prevData = $(row).prevAll().first().find("td").map((_,x)=>$(x).text()).toArray();
+        let newData = ReportTweaks.fn.mergeArray(currData,prevData);
+        if ( !newData )
+            return;
+        $(row).find("td").each( function(index,el) {
+            if ( newData[index] == null )
+                return;
+            else if ( $(el).text() != newData[index] )
+                $(el).removeClass('nodesig').text(newData[index]);
+            else if ( $(el).text() != "" ) 
+                $(el).removeClass('nodesig');
+        });
+        $(row).prevAll().first().remove();
     });
+    ReportTweaks.fn.reStripeRows();
 }
 
 ReportTweaks.fn.mergeArray = function(arr1, arr2) {
     let target = [];
     $.each( arr1, function(index,arr1Value) {
-        if ( arr2[index] == "" || arr1Value == "" )
+        if ( ReportTweaks.colIndexSkip.includes(index) )
+            target[index] = null;
+        else if ( arr2[index] == "" || arr1Value == "" || arr1Value == arr2[index] )
             target[index] = arr1Value || arr2[index];
         else {
             target = false;
@@ -176,11 +178,9 @@ ReportTweaks.fn.mergeArray = function(arr1, arr2) {
 }
 
 ReportTweaks.fn.removeEmptyRows = function() {
-    let skip = $(`#report_table th:contains(${ReportTweaks.record_id}),th:contains(redcap_repeat_instrument),th:contains(redcap_repeat_instance),th:contains(redcap_event_name)`).map( (_,el) => $(el).index()).toArray();
-    let header = $("#report_table thead tr").length;
-    $('#report_table tr').slice(header).filter(function(){
+    $('#report_table tr').slice( $("#report_table thead tr").length ).filter(function(){
         return $(this).find('td').filter(function(i) {
-            if ( !skip.includes(i) && $(this).text()!='') {
+            if ( !ReportTweaks.colIndexSkip.includes(i) && $(this).text()!='') {
                 return true;
             }
         }).length == 0;
@@ -253,7 +253,7 @@ ReportTweaks.fn.moveTableHeadersToggle = function() {
     }
     // Multi page report tweak for sizing
     if ( $(".report_pagenum_div").length )
-        $("#FixedTableHdrsEnable").css('margin-left', Number($("#report_table").css('width').replace('px',''))-200+'px' );
+        $("#FixedTableHdrsEnable").css('margin-left', Number($(".report_pagenum_div").css('width').replace('px',''))-170+'px' );
 }
 
 ReportTweaks.fn.waitForLoad = function() {
@@ -262,6 +262,14 @@ ReportTweaks.fn.waitForLoad = function() {
         window.requestAnimationFrame(ReportTweaks.fn.waitForLoad);
         return;
     }
+    
+    // Calculate locations (col #s) of redcap generated variables 
+    ReportTweaks.colIndexSkip = $(`#report_table 
+    th:contains(${ReportTweaks.record_id}),
+    th:contains(redcap_repeat_instrument),
+    th:contains(redcap_repeat_instance),
+    th:contains(redcap_event_name)`.replaceAll('\n','')).map( (_,el) => $(el).index()).toArray();
+    
     // Build checkboxes
     ReportTweaks.fn.insertCopyBtn();
     ReportTweaks.fn.insertCheckboxes();
