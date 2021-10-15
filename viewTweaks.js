@@ -1,5 +1,6 @@
 ReportTweaks.fn = {};
 ReportTweaks.html = {};
+ReportTweaks.DateRegex = /^\d{2}\-\d{2}\-\d{4}$/ ;
 ReportTweaks.html.copyBtn = `<a href="#" class="btn btn-secondary btn-sm mb-1" role="button" id="copyDataBtn"><i class="fas fa-clipboard"></i></a>`;
 ReportTweaks.html.checkboxes = `
 <div class="container p-0 mt-1" style="max-width:420px" id="checkboxGrouper">
@@ -87,6 +88,26 @@ ReportTweaks.fn.insertFilters = function() {
     $(".dataTables-rc-searchfilter-parent .col-sm-6").removeClass('col-sm-6').addClass('col-12 mt-1');
     $("#report_table_filter input").css('margin-right','3px');
     $("#report_table_filter").prepend(ReportTweaks.html.filters);
+    $.fn.dataTable.ext.search.push(ReportTweaks.fn.rangeSearch);
+}
+
+ReportTweaks.fn.rangeSearch = function( settings, data, dataIndex ) {
+    let min = $('#tableFilterMin').val();
+    let max = $('#tableFilterMax').val();
+    let target = $('#minmaxpivot').val() || "";
+    let pivot = data[$("#report_table th").index($(`th:contains(${target})`))] || 0;
+    
+    min = isNumeric(min) ? Number(min) : ReportTweaks.DateRegex.test(min) ? date_mdy2ymd(min.replaceAll('/','-')) : min;
+    max = isNumeric(max) ? Number(max) : ReportTweaks.DateRegex.test(max) ? date_mdy2ymd(max.replaceAll('/','-')) : max;
+    pivot = isNumeric(pivot) ? Number(pivot) : ReportTweaks.DateRegex.test(pivot) ? date_mdy2ymd(pivot.replaceAll('/','-')) : pivot;
+    
+    if ( ( min==="" && max==="" ) ||
+         ( target==="" ) ||
+         ( min==="" && pivot <= max ) ||
+         ( min <= pivot && max==="" ) ||
+         ( min <= pivot && pivot <= max ) )
+        return true;
+    return false;
 }
 
 ReportTweaks.fn.copyData = function() {
