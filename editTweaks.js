@@ -2,7 +2,7 @@ ReportTweaks.fn = {};
 ReportTweaks.html = {};
 ReportTweaks.html.dashboard = `
 <div style="margin:0 0 4px 20px;text-indent:-18px;">
-    <input name="tweaks_removeEvent" type="checkbox"> Remove <code>redcap_event_name</code> from report.
+    <input name="tweaks_includeEvent" type="checkbox"> Include <code>redcap_event_name</code> in the report.
 </div>
 <div style="margin:0 0 4px 20px;text-indent:-18px;">
     <input name="tweaks_merge" type="checkbox"> Attempt to combine rows representing the same record.
@@ -12,9 +12,7 @@ ReportTweaks.html.dashboard = `
 </div>`;
 
 ReportTweaks.fn.loadSettings = function() {
-    let settings = ReportTweaks.settings[getParameterByName('report_id')];
-    if (!settings)
-        return;
+    let settings = ReportTweaks.settings[getParameterByName('report_id')] || ReportTweaks.defaultSettings;
     $.each(settings, (key,val) => $(`input[name=tweaks_${key}]`).prop('checked', val) )
 }
 

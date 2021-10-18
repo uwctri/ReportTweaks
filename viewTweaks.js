@@ -122,14 +122,6 @@ ReportTweaks.fn.copyData = function() {
     navigator.clipboard.writeText(headers.get().join('\t')+data.get().join('\t'));
 }
 
-ReportTweaks.fn.reStripeRows = function() {
-    $("tr.odd:visible,tr.even:visible").each( function(i){
-        $(this).removeClass();
-        if (i%2 == 0) $(this).addClass('even');
-        else $(this).addClass('odd');
-    });
-}
-
 ReportTweaks.fn.mergeRows = function() {
     let recordCol = $(`#report_table th:contains(${ReportTweaks.record_id})`);
     if( !recordCol.length )
@@ -138,28 +130,30 @@ ReportTweaks.fn.mergeRows = function() {
         $(recordCol).click();
     recordCol = $(recordCol).index();
     let prev = -1;
-    $("#report_table tr:visible").each(function(index,row){
-        if ( index == 0)// Header
-            return;
-        let id = $(row).find('td').eq(recordCol).find('a').text();
+    let table = $("#report_table").DataTable();
+    let remove = [];
+    table.rows().every(function(rowIdx, tableLoop, rowLoop){
+        let row = this.data();
+        let id = $(row[0]).text().split(' ')[0].trim();
         if (id != prev ) { prev = id; return;} 
         prev = id;
-        let currData = $(row).find("td").map((_,x)=>$(x).text()).toArray();
-        let prevData = $(row).prevAll().first().find("td").map((_,x)=>$(x).text()).toArray();
+        let currData = $.map(row, (value,key) => {return typeof value == "string" ? value : value['display']});
+        let prevData = $.map(table.row(rowIdx-1).data(), (value,key) => {return typeof value == "string" ? value : value['display']});
         let newData = ReportTweaks.fn.mergeArray(currData,prevData);
         if ( !newData )
             return;
-        $(row).find("td").each( function(index,el) {
+        $(this.node()).find("td").each( function(index,el) {
             if ( newData[index] == null )
                 return;
-            else if ( $(el).text() != newData[index] )
-                $(el).removeClass('nodesig').text(newData[index]);
+            else if ( $(el).html() != newData[index] )
+                $(el).removeClass('nodesig').html(newData[index]);
             else if ( $(el).text() != "" ) 
                 $(el).removeClass('nodesig');
         });
-        $(row).prevAll().first().remove();
+        remove.push(table.row(rowIdx-1).node());
     });
-    ReportTweaks.fn.reStripeRows();
+    remove.forEach((row)=>table.row(row).remove());
+    $("#report_table").DataTable().draw();
 }
 
 ReportTweaks.fn.mergeArray = function(arr1, arr2) {
@@ -187,38 +181,32 @@ ReportTweaks.fn.removeEmptyRows = function() {
     }).remove();
 }
 
-ReportTweaks.fn.hideRepeatCols = function() {
+ReportTweaks.fn.hideRepeatCols = function( show = false ) {
     let haystack = ["redcap_repeat_instrument","redcap_repeat_instance"];
-    $('#report_table th :first-child').not("wbr").each( function(i) {
-        if ( haystack.includes($(this).text()) ) {
-            $(this).parent().addClass('repeatCol').hide();
-            $(`#report_table td:nth-child(${i+1})`).addClass('repeatCol').hide();
+    $("#report_table").DataTable().columns().every(function() {
+        if ( haystack.includes( $(this.header()).find(':first-child').text() ) ) {
+            this.visible(show);
         }
-    });
+    })
     ReportTweaks.fn.updateTableWidth();
 }
 
 ReportTweaks.fn.showRepeatCols = function() {
-    $("#report_table th.repeatCol, #report_table td.repeatCol").show();
-    ReportTweaks.fn.updateTableWidth();
+    ReportTweaks.fn.hideRepeatCols( true );
 }
 
-ReportTweaks.fn.hideEventCol = function(remove) {
-    $('#report_table th :first-child').not("wbr").each( function(i) {
-        if ( $(this).text() == "redcap_event_name" ) {
-            $(this).parent().addClass('eventCol').hide();
-            if ( remove )
-                (`#report_table td:nth-child(${i+1})`).remove();
-            else
-                $(`#report_table td:nth-child(${i+1})`).addClass('eventCol').hide();
+ReportTweaks.fn.hideEventCol = function( show = false) {
+    $("#report_table").DataTable().columns().every(function() {
+        if ( $(this.header()).find(':first-child').text() == "redcap_event_name" ) {
+            this.visible(show);
+            return false;
         }
     });
     ReportTweaks.fn.updateTableWidth();
 }
 
 ReportTweaks.fn.showEventCol = function() {
-    $("#report_table th.eventCol, #report_table td.eventCol").show();
-    ReportTweaks.fn.updateTableWidth();
+    ReportTweaks.fn.hideEventCol( true );
 }
 
 ReportTweaks.fn.updateTableWidth = function() {
@@ -276,18 +264,16 @@ ReportTweaks.fn.waitForLoad = function() {
     ReportTweaks.fn.insertFilters();
     
     // Load Report Config
-    let settings = ReportTweaks.settings[getParameterByName('report_id')];
-    if ( settings ) {
-        if ( settings.merge ) {
-            ReportTweaks.fn.mergeRows();
-        }
-        if ( settings.removeEmpty ) {
-            ReportTweaks.fn.removeEmptyRows();
-        }
-        if ( settings.removeEvent ) {
-            ReportTweaks.fn.hideEventCol(true);
-            $("#hideEventCol").prop('disabled',true).prop('checked',false);
-        }
+    let settings = ReportTweaks.settings[getParameterByName('report_id')] || ReportTweaks.defaultSettings;
+    if ( settings.merge ) {
+        ReportTweaks.fn.mergeRows();
+    }
+    if ( settings.removeEmpty ) {
+        ReportTweaks.fn.removeEmptyRows();
+    }
+    if ( !settings.includeEvent ) {
+        ReportTweaks.fn.hideEventCol();
+        $("#hideEventCol").prop('disabled',true).prop('checked',false);
     }
     
     // Load Cookie

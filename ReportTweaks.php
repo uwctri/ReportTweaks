@@ -9,6 +9,7 @@ class ReportTweaks extends AbstractExternalModule {
     
     private $module_global = 'ReportTweaks';
     private $cookieJS = "https://cdn.jsdelivr.net/npm/js-cookie@3.0.1/dist/js.cookie.min.js";
+    private $defaultSettings = ['includeEvent'=>true];
     
     public function redcap_every_page_top($project_id) {
         // Custom Config page
@@ -41,6 +42,7 @@ class ReportTweaks extends AbstractExternalModule {
             "modulePrefix" => $this->PREFIX,
             "router" => $this->getUrl('router.php'),
             "record_id" => REDCap::getRecordIdField(),
+            "defaultSettings" => $this->defaultSettings,
             "settings" => empty($json) ? array() : (array)json_decode($json),
         ]);
         echo "<script>var {$this->module_global} = {$data};</script>";
