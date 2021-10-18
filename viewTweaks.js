@@ -145,10 +145,9 @@ ReportTweaks.fn.mergeRows = function() {
         $(this.node()).find("td").each( function(index,el) {
             if ( newData[index] == null )
                 return;
-            else if ( $(el).html() != newData[index] )
-                $(el).removeClass('nodesig').html(newData[index]);
-            else if ( $(el).text() != "" ) 
-                $(el).removeClass('nodesig');
+            if ( $(el).html() != newData[index] )
+                table.cell(rowIdx, index).data( newData[index] );
+            $(el).removeClass('nodesig');
         });
         remove.push(table.row(rowIdx-1).node());
     });
@@ -273,13 +272,13 @@ ReportTweaks.fn.waitForLoad = function() {
     }
     if ( !settings.includeEvent ) {
         ReportTweaks.fn.hideEventCol();
-        $("#hideEventCol").prop('disabled',true).prop('checked',false);
+        $("#hideEventCol").prop('disabled',true).prop('checked',false).parent().hide();
     }
     
     // Load Cookie
     let cookie = JSON.parse(Cookies.get(`ReportTweaks${getParameterByName('report_id')}`) || '{}');
     if ($.isEmptyObject(cookie) && location.host == "ctri-redcap.dom.wisc.edu") { // Force custom defaults
-        cookie = { hideEventCol: true, hideRepeatCols:true };
+        cookie = { hideRepeatCols:true };
     } 
     $.each(cookie, (key,value) => {if(value) $(`#${key}`).click()} );
     
