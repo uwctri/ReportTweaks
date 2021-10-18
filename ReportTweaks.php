@@ -7,7 +7,6 @@ use REDCap;
 
 class ReportTweaks extends AbstractExternalModule {
     
-    private $module_prefix = 'report_tweaks';
     private $module_global = 'ReportTweaks';
     private $cookieJS = "https://cdn.jsdelivr.net/npm/js-cookie@3.0.1/dist/js.cookie.min.js";
     
@@ -33,13 +32,13 @@ class ReportTweaks extends AbstractExternalModule {
         $json = $this->getProjectSetting('json');
         $json = empty($json) ? array() : (array)json_decode($json);
         $json[$_POST['report']] = json_decode($_POST['settings']);
-        ExternalModules::setProjectSetting($this->module_prefix, $_GET['pid'], 'json', json_encode($json));
+        ExternalModules::setProjectSetting($this->PREFIX, $_GET['pid'], 'json', json_encode($json));
     }
     
     private function initGlobal() {
         $json = $this->getProjectSetting('json');
         $data = json_encode([
-            "modulePrefix" => $this->module_prefix,
+            "modulePrefix" => $this->PREFIX,
             "router" => $this->getUrl('router.php'),
             "record_id" => REDCap::getRecordIdField(),
             "settings" => empty($json) ? array() : (array)json_decode($json),
