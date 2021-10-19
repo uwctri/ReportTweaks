@@ -67,7 +67,17 @@ ReportTweaks.fn.insertCopyBtn = function() {
 
 ReportTweaks.fn.insertCheckboxes = function() {
     $("#report_div .d-print-none").eq(1).append(ReportTweaks.html.checkboxes);
-
+    let haystack = ["redcap_repeat_instrument","redcap_repeat_instance"];
+    let colsExist = false;
+    $("#report_table").DataTable().columns().every(function() {
+        if ( haystack.includes( $(this.header()).find(':first-child').text() ) ) {
+            colsExist = true;
+            return false;
+        }
+    });
+    if ( !colsExist ) {
+        $("#hideRepeatCols").prop('disabled',true).prop('checked',false).parent().hide();
+    }
     $("#hideRepeatCols").on('click', function() {
         if ( $(this).is(':checked') )
             ReportTweaks.fn.hideRepeatCols();
@@ -186,7 +196,7 @@ ReportTweaks.fn.hideRepeatCols = function( show = false ) {
         if ( haystack.includes( $(this.header()).find(':first-child').text() ) ) {
             this.visible(show);
         }
-    })
+    });
     ReportTweaks.fn.updateTableWidth();
 }
 
