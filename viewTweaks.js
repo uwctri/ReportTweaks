@@ -162,7 +162,7 @@ ReportTweaks.fn.mergeRows = function() {
         remove.push(table.row(rowIdx-1).node());
     });
     remove.forEach((row)=>table.row(row).remove());
-    $("#report_table").DataTable().draw();
+    table.draw();
 }
 
 ReportTweaks.fn.mergeArray = function(arr1, arr2) {
@@ -181,13 +181,16 @@ ReportTweaks.fn.mergeArray = function(arr1, arr2) {
 }
 
 ReportTweaks.fn.removeEmptyRows = function() {
-    $('#report_table tr').slice( $("#report_table thead tr").length ).filter(function(){
-        return $(this).find('td').filter(function(i) {
-            if ( !ReportTweaks.colIndexSkip.includes(i) && $(this).text()!='') {
-                return true;
-            }
-        }).length == 0;
-    }).remove();
+    let table = $("#report_table").DataTable();
+    let remove = [];
+    table.rows().every(function(rowIdx, tableLoop, rowLoop){
+        if ( this.data().filter((datum, colIdx) => 
+            !ReportTweaks.colIndexSkip.includes(colIdx) && datum != "").length == 0 ){
+            remove.push(this.node());
+        }
+    });
+    remove.forEach((row)=>table.row(row).remove());
+    table.draw();
 }
 
 ReportTweaks.fn.hideRepeatCols = function( show = false ) {
