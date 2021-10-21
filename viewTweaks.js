@@ -291,7 +291,7 @@ ReportTweaks.fn.waitForLoad = function() {
     // Load Cookie
     let cookie = JSON.parse(Cookies.get(`ReportTweaks${getParameterByName('report_id')}`) || '{}');
     if ($.isEmptyObject(cookie) && location.host == "ctri-redcap.dom.wisc.edu") { // Force custom defaults
-        cookie = { hideRepeatCols:true };
+        cookie = { hideRepeatCols:true, hideEventCol:true };
     } 
     $.each(cookie, (key,value) => {if(value) $(`#${key}`).click()} );
     
