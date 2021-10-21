@@ -293,7 +293,7 @@ ReportTweaks.fn.waitForLoad = function() {
     if ($.isEmptyObject(cookie) && location.host == "ctri-redcap.dom.wisc.edu") { // Force custom defaults
         cookie = { hideRepeatCols:true, hideEventCol:true };
     } 
-    $.each(cookie, (key,value) => {if(value) $(`#${key}`).click()} );
+    $.each(cookie, (key,value) => {if(value) $(`#${key}:enabled`).click()} );
     
     // Setup Cookie Saving
     $("#checkboxGrouper input").on('click', ReportTweaks.fn.saveCookie);
