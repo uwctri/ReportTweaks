@@ -36,6 +36,55 @@ class ReportTweaks extends AbstractExternalModule {
         ExternalModules::setProjectSetting($this->PREFIX, $_GET['pid'], 'json', json_encode($json));
     }
     
+    public function reportWrite() {
+        // Gather info
+        $writeBackData = (array) json_decode($_POST['writeArray']);
+        $dd = REDCap::getDataDictionary($pid,'array');
+        $pid = $_GET['pid'];
+        $field = $_POST['field']; // TODO Only send field once
+        $writeArray = [];
+        
+        // Loop over every line of the report we got back
+        foreach ( $writeBackData as $data ) {
+            
+            // Make sure field exists on event, shouldn't be an issue
+            if (!in_array($field, REDCap::getValidFieldsByEvents($pid, $data['event']))) {
+                continue;
+            }
+            
+            // If no overwritting then make sure we don't blow away data
+            if ( !$data['overwrite'] ) {
+                $existingData = REDCap::getData($pid, 'array', $data['record'], $field, $data['event']);
+                if( !empty($data['instrument']) && !$data['ignoreInstance'] && 
+                    !empty($existingData[$data['record']]["repeat_instances"][$data['event']][$data['instrument']][$data['instance']][$field])) {
+                    continue;// Don't do write
+                }
+                elseif ( !empty($existingData[$data['record']][$data['event']][$field]) ) {
+                    continue; // Don't do write
+                }
+            }
+            
+            // Set value defaults if blank
+            $value = $data['val'] ?? '1';
+            if (strpos($dd[$field]['text_validation_type_or_show_slider_number'],'date') !== false && $value == '1') {
+                $value = date("Y-m-d");// Date type, use today's date.
+            }
+            
+            // Set value on repeat or single instrument
+            if( !empty($data['instrument']) && !$data['ignoreInstance'] ) {
+                $instrument = str_replace(' ', '_', $data['instrument']);
+                $instrument = str_replace('-', '', $data['instrument']);
+                
+                if( $dd[$field]['form_name'] == $instrument ) {
+                    $writeArray[$data['record']]["repeat_instances"][$data['event']][$data['instrument']][$data['instance']][$field] = $value;
+                }
+            } else {
+                $writeArray[$data['record']][$data['event']][$field] = $value;
+            }
+        }
+        return REDCap::saveData($pid, 'array', $writeArray);
+    }
+    
     private function initGlobal() {
         $json = $this->getProjectSetting('json');
         $data = json_encode([
