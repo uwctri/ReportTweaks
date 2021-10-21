@@ -35,6 +35,12 @@ ReportTweaks.html.filters = `
             <option value="" selected disabled hidden>Filter Range On...</option>
         </select>
     </span>`;
+ReportTweaks.html.wbBtn = `
+<div style='margin-top:10px;'>
+    <button class="tweaks_writeback report_btn jqbuttonmed ui-button ui-corner-all ui-widget" style="font-size:12px;">
+        <i class="fas fa-pencil-alt fs10"></i> ${ReportTweaks.settings[getParameterByName('report_id')]['_wb'].modalBtn}
+    </button>
+</div>`;
 ReportTweaks.css = `
 <style>
     #copyDataBtn{
@@ -99,6 +105,11 @@ ReportTweaks.fn.insertFilters = function() {
     $("#report_table_filter input").css('margin-right','3px');
     $("#report_table_filter").prepend(ReportTweaks.html.filters);
     $.fn.dataTable.ext.search.push(ReportTweaks.fn.rangeSearch);
+}
+
+ReportTweaks.fn.insertWriteback = function() {
+    $("#report_div .d-print-none").last().append(ReportTweaks.html.wbBtn);
+    $("#openWBmodal").on("click", () => {} ); //TODO
 }
 
 ReportTweaks.fn.rangeSearch = function( settings, data, dataIndex ) {
@@ -286,6 +297,11 @@ ReportTweaks.fn.waitForLoad = function() {
     if ( !settings.includeEvent ) {
         ReportTweaks.fn.hideEventCol();
         $("#hideEventCol").prop('disabled',true).prop('checked',false).parent().hide();
+    }
+    
+    // Load Write Back Button config 
+    if ( settings.writeback ) {
+        ReportTweaks.fn.insertWriteback();
     }
     
     // Load Cookie
