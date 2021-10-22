@@ -38,8 +38,13 @@ ReportTweaks.html.filters = `
 ReportTweaks.html.wbBtn = `
 <div style='margin-top:10px;'>
     <button class="tweaks_writeback report_btn jqbuttonmed ui-button ui-corner-all ui-widget" style="font-size:12px;">
-        <i class="fas fa-pencil-alt fs10"></i> ${ReportTweaks.settings[getParameterByName('report_id')]['_wb'].modalBtn}
+        <i class="fas fa-pencil-alt fs10"></i> BtnLabel
     </button>
+</div>`;
+ReportTweaks.html.modalInput = `
+<div class="form-group mb-0">
+    <label class='font-weight-bold float-left mt-4'>LABEL</label>
+    <input type="text" class="swal2-input mt-0 mb-0" id="ID">
 </div>`;
 ReportTweaks.css = `
 <style>
@@ -56,6 +61,12 @@ ReportTweaks.css = `
         min-width: 900px;
     }
 </style>`;
+
+Date.prototype.addDays = function(days) {
+    let date = new Date(this.valueOf());
+    date.setDate(date.getDate() + days);
+    return date;
+}
 
 ReportTweaks.fn.insertCopyBtn = function() {
     if ( $(".report_pagenum_div").length ) { // Pagination
@@ -108,8 +119,125 @@ ReportTweaks.fn.insertFilters = function() {
 }
 
 ReportTweaks.fn.insertWriteback = function() {
-    $("#report_div .d-print-none").last().append(ReportTweaks.html.wbBtn);
-    $("#openWBmodal").on("click", () => {} ); //TODO
+    $("#report_div .d-print-none").last().append(
+        ReportTweaks.html.wbBtn.replace('BtnLabel',
+            ReportTweaks.settings[getParameterByName('report_id')]['_wb'].modalBtn));
+    $(".tweaks_writeback").on("click", ReportTweaks.fn.openModal);
+}
+
+ReportTweaks.fn.packageData = function() {
+    let writeArray = [];
+    let table = $("#report_table").DataTable();
+    let settings = ReportTweaks.settings[getParameterByName('report_id')]['_wb'];
+    let counter = 0;
+    
+    table.rows().every( function(rowIdx) {
+        let data = this.data();
+        let writeValue = settings['writeStatic'];
+        let type = settings['writeType'];
+        
+        if ( type == "today" )
+            writeValue = today;
+        if ( type == "ask" )
+            writeValue = $("#"+settings['field']).val() || $("#"+settings['field']).prop('placeholder'); // Todo not sure how this works yet
+        if ( settings['increment'] ) {
+            if ( type == "today" ) {
+                writeValue = (new Date(writeValue)).addDays(counter).toISOString().split('T')[0];
+            } else {
+                writeValue = (Number(writeValue) + counter).toString();
+            }
+            counter++;
+        }
+        
+        writeArray.push({
+            'record': $(data[ReportTweaks.coreColumnMap[ReportTweaks.record_id]])[0].text,
+            'event': settings.event || data[ReportTweaks.coreColumnMap['redcap_event_name']], // Can be event id or display name
+            'instrument': data[ReportTweaks.coreColumnMap['redcap_repeat_instrument']], // TODO go from name to instrument name
+            'instance': data[ReportTweaks.coreColumnMap['redcap_repeat_instance']],
+            'val': writeValue,
+        });
+    });
+    
+    return writeArray;
+}
+
+ReportTweaks.fn.toTitleCase = function(str) {
+    return str.replace(/[_-]/g,' ').replace(/(?:^|\s)\w/g, (match) => match.toUpperCase());
+}
+
+ReportTweaks.fn.openModal = function() {
+    let settings = ReportTweaks.settings[getParameterByName('report_id')]['_wb'];
+    if ( !$("#report_table").DataTable().rows().count() ) {
+        Swal.fire({
+            icon: 'info',
+            iconHtml: "<i class='fas fa-database'></i>",
+            title: "No Records",
+            html: "Nothin' to do boss" ,
+        });
+        return;
+    }
+    if ( ReportTweaks.writeDone ) {
+        Swal.fire({
+            icon: 'info',
+            iconHtml: "<i class='fas fa-database'></i>",
+            title: "Already Written",
+            html: "You've already written once to the database. \
+                   Please refresh the page before writing again." ,
+        });
+        return;
+    }
+
+    let html = settings.modalText;
+    if ( settings.writeType == 'ask' ) {
+        html += ReportTweaks.html.modalInput
+            .replace('LABEL',ReportTweaks.fn.toTitleCase(settings.field))
+            .replace('ID',settings.field)+'&nbsp;';
+    }
+    Swal.fire({
+        icon: 'question',
+        title: 'Are you sure?',
+        html: html,
+        footer: settings.footer,
+        showCloseButton: true,
+        showCancelButton: true,
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Write to DB'
+    }).then( (result) => {
+        if ( !result.value )
+            return;
+        $.ajax({
+            method: 'POST',
+            url: ReportTweaks.router,
+            data: {
+                route: 'reportWrite',
+                field: settings.field,
+                overwrite: !!settings.overwrites,
+                ignoreInstance: settings.event == "",
+                writeArray: JSON.stringify(ReportTweaks.fn.packageData())
+            },
+            error: (jqXHR, textStatus, errorThrown) => { 
+                console.log(jqXHR);
+                console.log(textStatus);
+                console.log(errorThrown);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Oops...',
+                    text: 'There was an issue writing back to the database.\
+                         If possible, leave this window open and contact a RedCap Administrator',
+                });
+            },
+            success: (data) => { 
+                console.log(data);
+                ReportTweaks.writeDone = true;
+                Swal.fire({
+                  icon: 'success',
+                  title: 'Write Back Complete',
+                  text: 'All data was successfully written back to the database',
+                });
+            }
+        });
+    })
 }
 
 ReportTweaks.fn.rangeSearch = function( settings, data, dataIndex ) {
@@ -179,7 +307,7 @@ ReportTweaks.fn.mergeRows = function() {
 ReportTweaks.fn.mergeArray = function(arr1, arr2) {
     let target = [];
     $.each( arr1, function(index,arr1Value) {
-        if ( ReportTweaks.colIndexSkip.includes(index) )
+        if ( Object.values(ReportTweaks.coreColumnMap).includes(index) )
             target[index] = null;
         else if ( arr2[index] == "" || arr1Value == "" || arr1Value == arr2[index] )
             target[index] = arr1Value || arr2[index];
@@ -196,7 +324,7 @@ ReportTweaks.fn.removeEmptyRows = function() {
     let remove = [];
     table.rows().every(function(rowIdx, tableLoop, rowLoop){
         if ( this.data().filter((datum, colIdx) => 
-            !ReportTweaks.colIndexSkip.includes(colIdx) && datum != "").length == 0 ){
+            !Object.values(ReportTweaks.coreColumnMap).includes(colIdx) && datum != "").length == 0 ){
             remove.push(this.node());
         }
     });
@@ -275,11 +403,14 @@ ReportTweaks.fn.waitForLoad = function() {
     }
     
     // Calculate locations (col #s) of redcap generated variables 
-    ReportTweaks.colIndexSkip = $(`#report_table 
+    ReportTweaks.coreColumnMap = {};
+    $(`#report_table 
     th:contains(${ReportTweaks.record_id}),
     th:contains(redcap_repeat_instrument),
     th:contains(redcap_repeat_instance),
-    th:contains(redcap_event_name)`.replaceAll('\n','')).map( (_,el) => $(el).index()).toArray();
+    th:contains(redcap_event_name)`.replaceAll('\n','')).each(function(_,el) {
+        ReportTweaks.coreColumnMap[$(el).find('.rpthdr').text()] = $(el).index();
+    });
     
     // Build checkboxes
     ReportTweaks.fn.insertCopyBtn();

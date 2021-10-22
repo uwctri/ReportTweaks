@@ -127,7 +127,7 @@ ReportTweaks.fn.saveSettings = function() {
         method: 'POST',
         url: ReportTweaks.router,
         data: {
-            route: 'save',
+            route: 'saveConfig',
             report: getParameterByName('report_id'),
             settings: JSON.stringify(settings)
         },
@@ -142,11 +142,13 @@ ReportTweaks.fn.openModal = function() {
         html: ReportTweaks.html.wbModal
     }).then( () => {
         // Save settings on close, not written to DB
+        ReportTweaks.modalSettings = {};
         $(".wbModal").find('input, select, textarea').each( function() {
             if ( this.type == "checkbox" ) {
                 ReportTweaks.modalSettings[this.name] = this.checked;
-            } else if ( this.type == "radio" && this.checked ) {
-                ReportTweaks.modalSettings[this.name] = this.value;
+            } else if ( this.type == "radio" ) {
+                if ( this.checked ) 
+                    ReportTweaks.modalSettings[this.name] = this.value;
             } else {
                 ReportTweaks.modalSettings[this.name] = this.value;
             }

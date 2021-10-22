@@ -41,34 +41,33 @@ class ReportTweaks extends AbstractExternalModule {
         $writeBackData = (array) json_decode($_POST['writeArray']);
         $dd = REDCap::getDataDictionary($pid,'array');
         $pid = $_GET['pid'];
-        $field = $_POST['field']; // TODO Only send field once
+        $field = $_POST['field'];
+        $eventMap = $this->makeEventMap();
         $writeArray = [];
         
         // Loop over every line of the report we got back
         foreach ( $writeBackData as $data ) {
             
+            // If we were sent a display name, swap it to an id
+            $event = is_numeric($data['event']) ? $data['event'] : $eventMap[$data['event']];
+            
             // Make sure field exists on event, shouldn't be an issue
-            if (!in_array($field, REDCap::getValidFieldsByEvents($pid, $data['event']))) {
+            if (empty($event) || !in_array($field, REDCap::getValidFieldsByEvents($pid, $event))) {
                 continue;
             }
             
             // If no overwritting then make sure we don't blow away data
             if ( !$data['overwrite'] ) {
-                $existingData = REDCap::getData($pid, 'array', $data['record'], $field, $data['event']);
+                $existingData = REDCap::getData($pid, 'array', $data['record'], $field, $event);
                 if( !empty($data['instrument']) && !$data['ignoreInstance'] && 
-                    !empty($existingData[$data['record']]["repeat_instances"][$data['event']][$data['instrument']][$data['instance']][$field])) {
+                    !empty($existingData[$data['record']]["repeat_instances"][$event][$data['instrument']][$data['instance']][$field])) {
                     continue;// Don't do write
                 }
-                elseif ( !empty($existingData[$data['record']][$data['event']][$field]) ) {
+                elseif ( !empty($existingData[$data['record']][$event][$field]) ) {
                     continue; // Don't do write
                 }
             }
             
-            // Set value defaults if blank
-            $value = $data['val'] ?? '1';
-            if (strpos($dd[$field]['text_validation_type_or_show_slider_number'],'date') !== false && $value == '1') {
-                $value = date("Y-m-d");// Date type, use today's date.
-            }
             
             // Set value on repeat or single instrument
             if( !empty($data['instrument']) && !$data['ignoreInstance'] ) {
@@ -76,13 +75,13 @@ class ReportTweaks extends AbstractExternalModule {
                 $instrument = str_replace('-', '', $data['instrument']);
                 
                 if( $dd[$field]['form_name'] == $instrument ) {
-                    $writeArray[$data['record']]["repeat_instances"][$data['event']][$data['instrument']][$data['instance']][$field] = $value;
+                    $writeArray[$data['record']]["repeat_instances"][$event][$data['instrument']][$data['instance']][$field] = $data['val'];
                 }
             } else {
-                $writeArray[$data['record']][$data['event']][$field] = $value;
+                $writeArray[$data['record']][$event][$field] = $data['val'];
             }
         }
-        return REDCap::saveData($pid, 'array', $writeArray);
+        return !empty($writeArray) ? REDCap::saveData($pid, 'array', $writeArray) : [];
     }
     
     private function initGlobal() {
@@ -95,6 +94,14 @@ class ReportTweaks extends AbstractExternalModule {
             "settings" => empty($json) ? array() : (array)json_decode($json),
         ]);
         echo "<script>var {$this->module_global} = {$data};</script>";
+    }
+    
+    private function makeEventMap() {
+        $map = [];
+        foreach( REDCap::getEventNames(false) as $id => $display ){
+            $map[$display] = $id;
+        }
+        return $map;
     }
     
     private function includeCookies() {
