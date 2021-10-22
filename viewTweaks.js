@@ -214,13 +214,6 @@ ReportTweaks.fn.openModal = function() {
     }).then( (result) => {
         if ( !result.value )
             return;
-        console.log({
-            route: 'reportWrite',
-            field: settings.field,
-            overwrite: !!settings.overwrites,
-            ignoreInstance: settings.event == "",
-            writeArray: ReportTweaks.fn.packageData()
-        }); // TODO remove
         $.ajax({
             method: 'POST',
             url: ReportTweaks.router,

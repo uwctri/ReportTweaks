@@ -131,8 +131,8 @@ ReportTweaks.fn.saveSettings = function() {
             report: getParameterByName('report_id'),
             settings: JSON.stringify(settings)
         },
-        error: (jqXHR, textStatus, errorThrown) => console.log(textStatus + " " +errorThrown),
-        success: () => console.log('Report Tweaks Settings Saved')
+        error: (jqXHR, textStatus, errorThrown) => console.log(`${jqXHR}\n${textStatus}\n${errorThrown}`),
+        success: () => console.log("Report Tweaks Settings Saved")
     });
 }
 
