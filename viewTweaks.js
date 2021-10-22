@@ -114,7 +114,7 @@ ReportTweaks.fn.insertFilters = function() {
 }
 
 ReportTweaks.fn.insertWriteback = function() {
-    $("#report_div .d-print-none").last().append(
+    $("#report_div .d-print-none").eq(1).append(
         ReportTweaks.html.wbBtn.replace('BtnLabel',
             ReportTweaks.settings[getParameterByName('report_id')]['_wb'].modalBtn));
     $(".tweaks_writeback").on("click", ReportTweaks.fn.openModal);
@@ -126,17 +126,17 @@ ReportTweaks.fn.packageData = function() {
     let settings = ReportTweaks.settings[getParameterByName('report_id')]['_wb'];
     let counter = 0;
     
-    table.rows().every( function(rowIdx) {
+    table.rows().every( function() {
         let data = this.data();
-        let writeValue = settings['writeStatic'];
-        let type = settings['writeType'];
+        let writeValue = settings.writeStatic;
+        let type = settings.writeType;
         
         if ( type == "today" )
             writeValue = today;
         if ( type == "ask" )
-            writeValue = $(`#${settings['field']}`).val();
+            writeValue = $(`#${settings.field}`).val();
         
-        if ( settings['increment'] ) {
+        if ( settings.increment ) {
             if ( type == "today" ) {
                 writeValue = (new Date(writeValue)).addDays(counter).toISOString().split('T')[0];
             } else {
@@ -163,28 +163,31 @@ ReportTweaks.fn.toTitleCase = function(str) {
 
 ReportTweaks.fn.openModal = function() {
     let settings = ReportTweaks.settings[getParameterByName('report_id')]['_wb'];
+    let defaults = {icon: 'info', iconHtml: "<i class='fas fa-database'></i>"}
+    
     if ( !$("#report_table").DataTable().rows().count() ) {
-        Swal.fire({
-            icon: 'info',
-            iconHtml: "<i class='fas fa-database'></i>",
+        Swal.fire({...defaults,
             title: "No Records",
             html: "Nothin' to do boss" ,
         });
         return;
     }
     if ( !ReportTweaks.coreColumnMap[ReportTweaks.record_id] ) {
-        Swal.fire({
-            icon: 'info',
-            iconHtml: "<i class='fas fa-database'></i>",
+        Swal.fire({...defaults,
             title: "No Record ID",
             html: `You must include ${ReportTweaks.record_id} on your report to write back to the database.`,
         });
         return;
     }
+    if ( !settings.field ) {
+        Swal.fire({...defaults,
+            title: "No Write Field Defined",
+            html: "Please review the writeback configuration and define a field that should be written to.",
+        });
+        return;
+    }
     if ( ReportTweaks.writeDone ) {
-        Swal.fire({
-            icon: 'info',
-            iconHtml: "<i class='fas fa-database'></i>",
+        Swal.fire({...defaults,
             title: "Already Written",
             html: "You've already written once to the database. \
                    Please refresh the page before writing again." ,
@@ -211,6 +214,13 @@ ReportTweaks.fn.openModal = function() {
     }).then( (result) => {
         if ( !result.value )
             return;
+        console.log({
+            route: 'reportWrite',
+            field: settings.field,
+            overwrite: !!settings.overwrites,
+            ignoreInstance: settings.event == "",
+            writeArray: ReportTweaks.fn.packageData()
+        }); // TODO remove
         $.ajax({
             method: 'POST',
             url: ReportTweaks.router,
@@ -222,9 +232,7 @@ ReportTweaks.fn.openModal = function() {
                 writeArray: JSON.stringify(ReportTweaks.fn.packageData())
             },
             error: (jqXHR, textStatus, errorThrown) => { 
-                console.log(jqXHR);
-                console.log(textStatus);
-                console.log(errorThrown);
+                console.log(`${jqXHR}\n${textStatus}\n${errorThrown}`);
                 Swal.fire({
                     icon: 'error',
                     title: 'Oops...',
