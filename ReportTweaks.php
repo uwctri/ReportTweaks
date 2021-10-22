@@ -42,7 +42,7 @@ class ReportTweaks extends AbstractExternalModule {
         $dd = REDCap::getDataDictionary($pid,'array');
         $pid = $_GET['pid'];
         $field = $_POST['field'];
-        $eventMap = $this->makeEventMap();
+        $eventMap = $this->makeEventMap($pid);
         $writeArray = [];
         
         // Loop over every line of the report we got back
@@ -96,10 +96,13 @@ class ReportTweaks extends AbstractExternalModule {
         echo "<script>var {$this->module_global} = {$data};</script>";
     }
     
-    private function makeEventMap() {
+    private function makeEventMap($project_id) {
         $map = [];
         foreach( REDCap::getEventNames(false) as $id => $display ){
             $map[$display] = $id;
+        }
+        if ( empty($map) ) {
+            $map[""] = reset(array_keys(reset(REDCap::getData($project_id,'array', null, REDCap::getRecordIdField()))));
         }
         return $map;
     }

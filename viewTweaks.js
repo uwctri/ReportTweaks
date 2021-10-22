@@ -134,7 +134,8 @@ ReportTweaks.fn.packageData = function() {
         if ( type == "today" )
             writeValue = today;
         if ( type == "ask" )
-            writeValue = $("#"+settings['field']).val() || $("#"+settings['field']).prop('placeholder'); // Todo not sure how this works yet
+            writeValue = $(`#${settings['field']}`).val();
+        
         if ( settings['increment'] ) {
             if ( type == "today" ) {
                 writeValue = (new Date(writeValue)).addDays(counter).toISOString().split('T')[0];
@@ -146,9 +147,9 @@ ReportTweaks.fn.packageData = function() {
         
         writeArray.push({
             'record': $(data[ReportTweaks.coreColumnMap[ReportTweaks.record_id]])[0].text,
-            'event': settings.event || data[ReportTweaks.coreColumnMap['redcap_event_name']], // Can be event id or display name
-            'instrument': data[ReportTweaks.coreColumnMap['redcap_repeat_instrument']], // TODO go from name to instrument name
-            'instance': data[ReportTweaks.coreColumnMap['redcap_repeat_instance']],
+            'event': settings.event || data[ReportTweaks.coreColumnMap['redcap_event_name']] || "", // Can be event id or display name
+            'instrument': data[ReportTweaks.coreColumnMap['redcap_repeat_instrument']] || "",       // display name, mapped server side
+            'instance': data[ReportTweaks.coreColumnMap['redcap_repeat_instance']] || "",
             'val': writeValue,
         });
     });
