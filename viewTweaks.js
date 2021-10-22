@@ -173,7 +173,7 @@ ReportTweaks.fn.openModal = function() {
         });
         return;
     }
-    if ( !ReportTweaks.coreColumnMap[ReportTweaks.record_id] ) {
+    if ( !isNumeric(ReportTweaks.coreColumnMap[ReportTweaks.record_id]) ) {
         Swal.fire({...defaults,
             title: "No Record ID",
             html: `You must include ${ReportTweaks.record_id} on your report to write back to the database.`,
