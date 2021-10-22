@@ -165,7 +165,8 @@ ReportTweaks.fn.openModal = function() {
     let settings = ReportTweaks.settings[getParameterByName('report_id')]['_wb'];
     let defaults = {icon: 'info', iconHtml: "<i class='fas fa-database'></i>"}
     
-    if ( !$("#report_table").DataTable().rows().count() ) {
+    if ( ! $.fn.DataTable.isDataTable('#report_table') || 
+         !$("#report_table").DataTable().rows().count() ) {
         Swal.fire({...defaults,
             title: "No Records",
             html: "Nothin' to do boss" ,
@@ -395,8 +396,7 @@ ReportTweaks.fn.moveTableHeadersToggle = function() {
 }
 
 ReportTweaks.fn.waitForLoad = function() {
-    if ( $("#report_table_wrapper").length != 1 ||      // Table Still Loading
-         $("#report_div .d-print-none").length < 2 ) {  // Extra check
+    if ( $("#report_table thead").length == 0 ) { // Still Loading
         window.requestAnimationFrame(ReportTweaks.fn.waitForLoad);
         return;
     }
