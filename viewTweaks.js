@@ -84,16 +84,11 @@ ReportTweaks.fn.insertCopyBtn = function() {
 
 ReportTweaks.fn.insertCheckboxes = function() {
     $("#report_div .d-print-none").eq(1).append(ReportTweaks.html.checkboxes);
-    let haystack = ["redcap_repeat_instrument","redcap_repeat_instance"];
-    let colsExist = false;
-    $("#report_table").DataTable().columns().every(function() {
-        if ( haystack.includes( $(this.header()).find(':first-child').text() ) ) {
-            colsExist = true;
-            return false;
-        }
-    });
-    if ( !colsExist ) {
+    if ( !Number.isInteger(ReportTweaks.coreColumnMap['redcap_repeat_instrument']) ) {
         $("#hideRepeatCols").prop('disabled',true).prop('checked',false).parent().hide();
+    }
+    if ( !Number.isInteger(ReportTweaks.coreColumnMap['redcap_event_name']) ) {
+        $("#hideEventCol").prop('disabled',true).prop('checked',false).parent().hide();
     }
     $("#hideRepeatCols").on('click', function() {
         if ( $(this).is(':checked') )
@@ -173,6 +168,15 @@ ReportTweaks.fn.openModal = function() {
             iconHtml: "<i class='fas fa-database'></i>",
             title: "No Records",
             html: "Nothin' to do boss" ,
+        });
+        return;
+    }
+    if ( !ReportTweaks.coreColumnMap[ReportTweaks.record_id] ) {
+        Swal.fire({
+            icon: 'info',
+            iconHtml: "<i class='fas fa-database'></i>",
+            title: "No Record ID",
+            html: `You must include ${ReportTweaks.record_id} on your report to write back to the database.`,
         });
         return;
     }
@@ -333,12 +337,9 @@ ReportTweaks.fn.removeEmptyRows = function() {
 }
 
 ReportTweaks.fn.hideRepeatCols = function( show = false ) {
-    let haystack = ["redcap_repeat_instrument","redcap_repeat_instance"];
-    $("#report_table").DataTable().columns().every(function() {
-        if ( haystack.includes( $(this.header()).find(':first-child').text() ) ) {
-            this.visible(show);
-        }
-    });
+    let table = $("#report_table").DataTable();
+    table.column(ReportTweaks.coreColumnMap['redcap_repeat_instrument']).visible(show);
+    table.column(ReportTweaks.coreColumnMap['redcap_repeat_instance']).visible(show);
     ReportTweaks.fn.updateTableWidth();
 }
 
@@ -347,12 +348,8 @@ ReportTweaks.fn.showRepeatCols = function() {
 }
 
 ReportTweaks.fn.hideEventCol = function( show = false) {
-    $("#report_table").DataTable().columns().every(function() {
-        if ( $(this.header()).find(':first-child').text() == "redcap_event_name" ) {
-            this.visible(show);
-            return false;
-        }
-    });
+    let table = $("#report_table").DataTable();
+    table.column(ReportTweaks.coreColumnMap['redcap_event_name']).visible(show);
     ReportTweaks.fn.updateTableWidth();
 }
 
