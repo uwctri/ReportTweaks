@@ -127,6 +127,8 @@ ReportTweaks.fn.packageData = function() {
     let counter = 0;
     
     table.rows().every( function() {
+        if ( !$(this.node()).is(':visible') )
+            return;
         let data = this.data();
         let writeValue = settings.writeStatic;
         let type = settings.writeType;
