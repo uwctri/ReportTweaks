@@ -22,7 +22,7 @@ ReportTweaks.html.dashboard = `
     <input name="tweaks_includeEvent" type="checkbox"> Include <code>redcap_event_name</code> in the report.
 </div>
 <div style="margin:0 0 4px 20px;text-indent:-18px;">
-    <input name="tweaks_merge" type="checkbox"> Attempt to combine rows representing the same record.
+    <input name="tweaks_merge" type="checkbox"> Combine rows representing the same record.
 </div>
 <div style="margin:0 0 4px 20px;text-indent:-18px;">
     <input name="tweaks_removeEmpty" type="checkbox"> Remove rows with no data (i.e. empty) other than <code>redcap_</code> variables and <code>record_id</code>.
