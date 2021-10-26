@@ -1,7 +1,10 @@
 ReportTweaks.fn = {};
 ReportTweaks.html = {};
+ReportTweaks.cookie = {};
 ReportTweaks.DateRegex = /^\d{2}\-\d{2}\-\d{4}$/;
+
 ReportTweaks.html.copyBtn = `<a href="#" class="btn btn-secondary btn-sm mb-1" role="button" id="copyDataBtn"><i class="fas fa-clipboard"></i></a>`;
+
 ReportTweaks.html.checkboxes = `
 <div class="container p-0 mt-1" style="max-width:420px" id="checkboxGrouper">
     <div class="row no-gutters">
@@ -13,16 +16,9 @@ ReportTweaks.html.checkboxes = `
             <span class="font-weight-bold">Hide Repeating Form Columns: </span>
             <input type='checkbox' class='checkbox-inline' id='hideRepeatCols'>
         </div>
-        <div class="col-md-5" style="display:none">
-            <span class="font-weight-bold">Option Three: </span>
-            <input type='checkbox' class='checkbox-inline' id='OptionThree'>
-        </div>
-        <div class="col-md-7" style="display:none">
-            <span class="font-weight-bold">Option Four: </span>
-            <input type='checkbox' class='checkbox-inline' id='OptionFour'>
-        </div>
     </div>
 </div>`;
+
 ReportTweaks.html.filters = `
     <span class="dataTables_filter">
         <label><input type="text" placeholder="Maximum" id="tableFilterMax" tabindex=3></label>
@@ -35,31 +31,34 @@ ReportTweaks.html.filters = `
             <option value="" selected disabled hidden>Filter Range On...</option>
         </select>
     </span>`;
+
 ReportTweaks.html.wbBtn = `
 <div style='margin-top:10px;'>
     <button class="tweaks_writeback report_btn jqbuttonmed ui-button ui-corner-all ui-widget" style="font-size:12px;">
         <i class="fas fa-pencil-alt fs10"></i> BtnLabel
     </button>
 </div>`;
+
 ReportTweaks.html.modalInput = `
 <div class="form-group mb-0">
     <label class='font-weight-bold float-left mt-4'>LABEL</label>
     <input type="text" class="swal2-input mt-0 mb-0" id="ID">
 </div>`;
+
 ReportTweaks.css = `
 <style>
-    #copyDataBtn{
-        color: #aaa;
-        background-color: #eee;
-        border-color: #eee;
-    }
-    #reportCopyAlert{
-        width: 771px;
-        border-color:#ffeeba!important;
-    }
-    #report_table{
-        min-width: 900px;
-    }
+#copyDataBtn{
+    color: #aaa;
+    background-color: #eee;
+    border-color: #eee;
+}
+#reportCopyAlert{
+    width: 771px;
+    border-color:#ffeeba!important;
+}
+#report_table{
+    min-width: 900px;
+}
 </style>`;
 
 Date.prototype.addDays = function(days) {
@@ -295,8 +294,8 @@ ReportTweaks.fn.mergeRows = function() {
         let id = $(row[0]).text().split(' ')[0].trim();
         if (id != prev) { prev = id; return; }
         prev = id;
-        let currData = $.map(row, (value, key) => { return typeof value == "string" ? value : value['display'] });
-        let prevData = $.map(table.row(rowIdx - 1).data(), (value, key) => { return typeof value == "string" ? value : value['display'] });
+        let currData = $.map(row, (value, key) => typeof value == "string" ? value : value['display']);
+        let prevData = $.map(table.row(rowIdx - 1).data(), (value, key) => typeof value == "string" ? value : value['display']);
         let newData = ReportTweaks.fn.mergeArray(currData, prevData);
         if (!newData)
             return;
@@ -332,7 +331,8 @@ ReportTweaks.fn.removeEmptyRows = function() {
     let table = $("#report_table").DataTable();
     let remove = [];
     table.rows().every(function(rowIdx, tableLoop, rowLoop) {
-        if (this.data().filter((datum, colIdx) =>
+        let data = $.map(this.data(), (value, key) => typeof value == "string" ? value : value['display']);
+        if (data.filter((datum, colIdx) =>
                 !Object.values(ReportTweaks.coreColumnMap).includes(colIdx) && datum != "").length == 0) {
             remove.push(this.node());
         }
@@ -372,9 +372,10 @@ ReportTweaks.fn.updateTableWidth = function() {
 }
 
 ReportTweaks.fn.saveCookie = function() {
-    let saveCookie = {};
-    $("#checkboxGrouper input").each((_, el) => { saveCookie[$(el).attr('id')] = $(el).is(':checked') });
-    Cookies.set(`ReportTweaks${getParameterByName('report_id')}`, JSON.stringify(saveCookie), { sameSite: 'strict' });
+    let localCookie = {};
+    $("#checkboxGrouper input").each((_, el) => { localCookie[$(el).attr('id')] = $(el).is(':checked') });
+    ReportTweaks.cookie[getParameterByName('report_id')] = localCookie;
+    Cookies.set("RedcapReportTweaks", JSON.stringify(ReportTweaks.cookie), { sameSite: 'strict' });
 }
 
 ReportTweaks.fn.moveTableHeadersToggle = function() {
@@ -409,7 +410,7 @@ ReportTweaks.fn.waitForLoad = function() {
     th:contains(${ReportTweaks.record_id}),
     th:contains(redcap_repeat_instrument),
     th:contains(redcap_repeat_instance),
-    th:contains(redcap_event_name)`.replaceAll('\n', '')).each(function(_, el) {
+    th:contains(redcap_event_name)`).each(function(_, el) {
         ReportTweaks.coreColumnMap[$(el).find('.rpthdr').text()] = $(el).index();
     });
 
@@ -437,11 +438,13 @@ ReportTweaks.fn.waitForLoad = function() {
     }
 
     // Load Cookie
-    let cookie = JSON.parse(Cookies.get(`ReportTweaks${getParameterByName('report_id')}`) || '{}');
-    if ($.isEmptyObject(cookie) && location.host == "ctri-redcap.dom.wisc.edu") { // Force custom defaults
-        cookie = { hideRepeatCols: true, hideEventCol: true };
+    let cookie = JSON.parse(Cookies.get("RedcapReportTweaks") || '{}');
+    let report = getParameterByName('report_id');
+    if (!cookie[report] && location.host == "ctri-redcap.dom.wisc.edu") { // Force custom defaults
+        cookie[report] = { hideRepeatCols: true, hideEventCol: true };
     }
-    $.each(cookie, (key, value) => { if (value) $(`#${key}:enabled`).click() });
+    ReportTweaks.cookie = cookie;
+    $.each(cookie[report], (key, value) => { if (value) $(`#${key}:enabled`).click() });
 
     // Setup Cookie Saving
     $("#checkboxGrouper input").on('click', ReportTweaks.fn.saveCookie);
