@@ -154,7 +154,6 @@ ReportTweaks.fn.packageData = function() {
             'val': writeValue,
         });
     });
-
     return writeArray;
 }
 
@@ -223,7 +222,6 @@ ReportTweaks.fn.openModal = function() {
                 route: 'reportWrite',
                 field: settings.field,
                 overwrite: !!settings.overwrites,
-                ignoreInstance: settings.event == "",
                 writeArray: JSON.stringify(ReportTweaks.fn.packageData())
             },
             error: (jqXHR, textStatus, errorThrown) => {

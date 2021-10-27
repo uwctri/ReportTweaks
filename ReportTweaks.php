@@ -42,18 +42,19 @@ class ReportTweaks extends AbstractExternalModule {
         $dd = REDCap::getDataDictionary($pid,'array');
         $pid = $_GET['pid'];
         $field = $_POST['field'];
-        $overwrite = $_POST['overwrite'];
-        $ignoreInstance = $_POST['ignoreInstance'];
+        $overwrite = json_decode($_POST['overwrite']);
         $eventMap = $this->makeEventMap($pid);
-        $instrumentmap = $this->makeInstrumentMap();
+        $instrumentMap = $this->makeInstrumentMap();
         $writeArray = [];
         
         // Loop over every line of the report we got back
         foreach ( $writeBackData as $data ) {
-        
+            
             // If we were sent a display name, swap it to an id (or internal instrument name)
             $event = is_numeric($data['event']) ? $data['event'] : $eventMap[$data['event']];
-            $instrument = $instrumentmap[$data['instrument']] ?? "";
+            $instrument = $instrumentMap[$data['instrument']] ?? "";
+            $record = $data['record'];
+            $instance = $data['instance'] ?? "";
             
             // Make sure field exists on event, shouldn't be an issue
             if (empty($event) || !in_array($field, REDCap::getValidFieldsByEvents($pid, $event))) {
@@ -61,24 +62,24 @@ class ReportTweaks extends AbstractExternalModule {
             }
             
             // If no overwritting then make sure we don't blow away data
-            if ( !$data['overwrite'] ) {
-                $existingData = REDCap::getData($pid, 'array', $data['record'], $field, $event);
-                if( !empty($instrument) && !$ignoreInstance && 
-                    !empty($existingData[$data['record']]["repeat_instances"][$event][$instrument][$data['instance']][$field])) {
-                    continue;// Don't do write
+            if ( !$overwrite ) {
+                $existingData = REDCap::getData($pid, 'array', $record, $field, $event)[$record];
+                if( !empty($instrument) ) { 
+                    if (!empty($existingData["repeat_instances"][$event][$instrument][$instance][$field]))
+                        continue;// Don't do write
                 }
-                elseif ( !empty($existingData[$data['record']][$event][$field]) ) {
+                elseif ( !empty($existingData[$event][$field]) ) {
                     continue; // Don't do write
                 }
             }
             
             // Set value on repeat or single instrument
-            if( !empty($instrument) && !$ignoreInstance ) {
+            if( !empty($instrument) ) {
                 if( $dd[$field]['form_name'] == $instrument ) {
-                    $writeArray[$data['record']]["repeat_instances"][$event][$instrument][$data['instance']][$field] = $data['val'];
+                    $writeArray[$record]["repeat_instances"][$event][$instrument][$instance][$field] = $data['val'];
                 }
             } else {
-                $writeArray[$data['record']][$event][$field] = $data['val'];
+                $writeArray[$record][$event][$field] = $data['val'];
             }
         }
         return json_encode(!empty($writeArray) ? REDCap::saveData($pid, 'array', $writeArray) : ["warnings"=>["No data to write"]]);
