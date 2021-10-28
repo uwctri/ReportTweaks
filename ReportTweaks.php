@@ -11,12 +11,17 @@ class ReportTweaks extends AbstractExternalModule {
     private $cookieJS = "https://cdn.jsdelivr.net/npm/js-cookie@3.0.1/dist/js.cookie.min.js";
     private $defaultSettings = ['includeEvent'=>true];
     
+    /*
+    Primary Redcap Hook, loads config and Report pages
+    */
     public function redcap_every_page_top($project_id) {
+        
         // Custom Config page
         if (strpos(PAGE, 'manager/project.php') !== false && $project_id != NULL) {
             $this->initGlobal();
             $this->includeJs('config.js');
         }
+        
         // Reports Page
         elseif (PAGE == 'DataExport/index.php' && $project_id != NULL && $_GET['report_id']) {
             $this->initGlobal();
@@ -27,8 +32,13 @@ class ReportTweaks extends AbstractExternalModule {
                 $this->includeJs('viewTweaks.js');
             }
         }
+        
     }
     
+    /*
+    Save all report config to a single json setting for the EM. 
+    Invoked via router/ajax
+    */
     public function saveReportConfig() {
         $json = $this->getProjectSetting('json');
         $json = empty($json) ? array() : (array)json_decode($json);
@@ -36,6 +46,10 @@ class ReportTweaks extends AbstractExternalModule {
         ExternalModules::setProjectSetting($this->PREFIX, $_GET['pid'], 'json', json_encode($json));
     }
     
+    /*
+    Perform a write back from a report. Write some value to a series of
+    records with event/instrument/instance info. Invoked via router/ajax
+    */
     public function reportWrite() {
         // Gather info
         $writeBackData = (array) json_decode($_POST['writeArray'],true);
@@ -80,9 +94,13 @@ class ReportTweaks extends AbstractExternalModule {
                 $writeArray[$record][$event][$field] = $data['val'];
             }
         }
-        return json_encode(!empty($writeArray) ? REDCap::saveData($pid, 'array', $writeArray) : ["warnings"=>["No data to write"]]);
+        echo json_encode(!empty($writeArray) ? REDCap::saveData($pid, 'array', $writeArray) : ["warnings"=>["No data to write"]]);
     }
     
+    /*
+    Inits the ReportTweaks global and loads all settings to it. 
+    Config page doesn't use most of this, but it takes no time to load.
+    */
     private function initGlobal() {
         $json = $this->getProjectSetting('json');
         $data = json_encode([
@@ -95,29 +113,36 @@ class ReportTweaks extends AbstractExternalModule {
         echo "<script>var {$this->module_global} = {$data};</script>";
     }
     
+    /*
+    Util functions used by writeback. Creates a map of event display
+    names to event ids.
+    */
     private function makeEventMap($project_id) {
-        $map = [];
-        foreach( REDCap::getEventNames(false) as $id => $display ){
-            $map[$display] = $id;
-        }
+        $map = array_flip(REDCap::getEventNames(false));
         if ( empty($map) ) {
             $map[""] = reset(array_keys(reset(REDCap::getData($project_id,'array', null, REDCap::getRecordIdField()))));
         }
         return $map;
     }
     
+    /*
+    Util functions used by writeback. Creates a map of instrument
+    display names to internal names (i.e. Hello world -> hello_world)
+    */
     private function makeInstrumentMap() {
-        $map = [];
-        foreach (REDCap::getInstrumentNames() as $id=>$display) {
-            $map[$display] = $id;
-        }
-        return $map;
+        return array_flip(REDCap::getInstrumentNames());
     }
     
+    /*
+    HTML to include the cookie.js CDN 
+    */
     private function includeCookies() {
         echo "<script type='text/javascript' src={$this->cookieJS}></script>";
     }
     
+    /*
+    HTML to include some local JS file
+    */
     private function includeJs($path) {
         echo "<script src={$this->getUrl($path)}></script>";
     }
