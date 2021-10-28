@@ -11,6 +11,6 @@ elseif ( $_POST['route'] == "reportWrite" ) {
 else {
     header("HTTP/1.1 400 Bad Request");
     header('Content-Type: application/json; charset=UTF-8');    
-    die("This route does not exist.");
+    die( json_encode("This route does not exist.") );
 }
 ?>
