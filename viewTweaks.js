@@ -67,6 +67,10 @@ Date.prototype.addDays = function(days) {
     return date;
 }
 
+/*
+Manipulate DOM to insert the Copy Button regardless
+of report format.
+*/
 ReportTweaks.fn.insertCopyBtn = function() {
     if ($(".report_pagenum_div").length) { // Pagination
         $(".report_pagenum_div").first().before(ReportTweaks.html.copyBtn);
@@ -81,7 +85,14 @@ ReportTweaks.fn.insertCopyBtn = function() {
     $("#copyDataBtn").on("click", ReportTweaks.fn.copyData);
 }
 
+/*
+Manipulate DOM to insert the config checkboxes for hiding
+Event and Redcap repeat vars. Hides the boxes after insert
+if they are not able to be used.
+*/
 ReportTweaks.fn.insertCheckboxes = function() {
+    
+    // Insert into the DOM
     $("#report_div .d-print-none").eq(1).append(ReportTweaks.html.checkboxes);
     if (!Number.isInteger(ReportTweaks.coreColumnMap['redcap_repeat_instrument'])) {
         $("#hideRepeatCols").prop('disabled', true).prop('checked', false).parent().hide();
@@ -89,20 +100,18 @@ ReportTweaks.fn.insertCheckboxes = function() {
     if (!Number.isInteger(ReportTweaks.coreColumnMap['redcap_event_name'])) {
         $("#hideEventCol").prop('disabled', true).prop('checked', false).parent().hide();
     }
-    $("#hideRepeatCols").on('click', function() {
-        if ($(this).is(':checked'))
-            ReportTweaks.fn.hideRepeatCols();
-        else
-            ReportTweaks.fn.showRepeatCols();
-    });
-    $("#hideEventCol").on('click', function() {
-        if ($(this).is(':checked'))
-            ReportTweaks.fn.hideEventCol();
-        else
-            ReportTweaks.fn.showEventCol();
-    });
+    
+    // Add events to toggle col visibility
+    let fn = ReportTweaks.fn;
+    $("#hideRepeatCols").on('click', function() { fn.toggleRepeatCols(!this.checked) });
+    $("#hideEventCol").on('click', function() { fn.toggleEventCol(!this.checked) });
 }
 
+/*
+Performs very minor DOM manipulations to make the default search box
+and the enable/disable floating headers button appear uniform with the 
+new range search boxes at the top of report.
+*/
 ReportTweaks.fn.insertFilters = function() {
     $(".dataTables-rc-searchfilter-parent").css('width', '100%');
     $(".dataTables-rc-searchfilter-parent .col-sm-6").first().remove();
@@ -112,6 +121,10 @@ ReportTweaks.fn.insertFilters = function() {
     $.fn.dataTable.ext.search.push(ReportTweaks.fn.rangeSearch);
 }
 
+/*
+Inserts buttons below the live filters or write back buttons if they
+are configured.
+*/
 ReportTweaks.fn.insertWriteback = function() {
     $("#report_div .d-print-none").eq(1).append(
         ReportTweaks.html.wbBtn.replace('BtnLabel',
@@ -119,6 +132,11 @@ ReportTweaks.fn.insertWriteback = function() {
     $(".tweaks_writeback").on("click", ReportTweaks.fn.openModal);
 }
 
+/*
+Gathers data for every row in preperation for a write back.
+Finds event and repeating instrument/instance if it exists.
+Also handles write value calculation, if any.
+*/
 ReportTweaks.fn.packageData = function() {
     let writeArray = [];
     let table = $("#report_table").DataTable();
@@ -146,25 +164,38 @@ ReportTweaks.fn.packageData = function() {
             counter++;
         }
 
+        let record = $(data[ReportTweaks.coreColumnMap[ReportTweaks.record_id]])[0].text;
+        let eventid = settings.event || data[ReportTweaks.coreColumnMap['redcap_event_name']] || "";
+        let instrument = data[ReportTweaks.coreColumnMap['redcap_repeat_instrument']] || "";
+        let instance = data[ReportTweaks.coreColumnMap['redcap_repeat_instance']] || "";
         writeArray.push({
-            'record': $(data[ReportTweaks.coreColumnMap[ReportTweaks.record_id]])[0].text,
-            'event': settings.event || data[ReportTweaks.coreColumnMap['redcap_event_name']] || "", // Can be event id or display name
-            'instrument': data[ReportTweaks.coreColumnMap['redcap_repeat_instrument']] || "", // display name, mapped server side
-            'instance': data[ReportTweaks.coreColumnMap['redcap_repeat_instance']] || "",
+            'record': record,
+            'event': eventid,         // Can be event id or display name
+            'instrument': instrument, // Always display name, mapped server side
+            'instance': instance,
             'val': writeValue,
         });
     });
     return writeArray;
 }
 
+/*
+Pretty formatting for displaying the field name being written to
+in write back modal
+*/
 ReportTweaks.fn.toTitleCase = function(str) {
     return str.replace(/[_-]/g, ' ').replace(/(?:^|\s)\w/g, (match) => match.toUpperCase());
 }
 
+/*
+Checks report, configuration, and if valid then generates/displays
+the write back modal to user. 
+*/
 ReportTweaks.fn.openModal = function() {
     let settings = ReportTweaks.settings[getParameterByName('report_id')]['_wb'];
     let defaults = { icon: 'info', iconHtml: "<i class='fas fa-database'></i>" }
 
+    // No records exist on the report
     if (!$.fn.DataTable.isDataTable('#report_table') ||
         !$("#report_table").DataTable().rows().count()) {
         Swal.fire({...defaults,
@@ -173,6 +204,8 @@ ReportTweaks.fn.openModal = function() {
         });
         return;
     }
+    
+    // Record ID is missing from the report
     if (!isNumeric(ReportTweaks.coreColumnMap[ReportTweaks.record_id])) {
         Swal.fire({...defaults,
             title: "No Record ID",
@@ -180,6 +213,8 @@ ReportTweaks.fn.openModal = function() {
         });
         return;
     }
+    
+    // Bad configuration
     if (!settings.field) {
         Swal.fire({...defaults,
             title: "No Write Field Defined",
@@ -187,6 +222,8 @@ ReportTweaks.fn.openModal = function() {
         });
         return;
     }
+    
+    // Write back has occured once already
     if (ReportTweaks.writeDone) {
         Swal.fire({...defaults,
             title: "Already Written",
@@ -196,12 +233,15 @@ ReportTweaks.fn.openModal = function() {
         return;
     }
 
+    // Build out modal text if needed
     let html = settings.modalText;
     if (settings.writeType == 'ask') {
         html += ReportTweaks.html.modalInput
             .replace('LABEL', ReportTweaks.fn.toTitleCase(settings.field))
             .replace('ID', settings.field) + '&nbsp;';
     }
+    
+    // Display modal and handle response from server
     Swal.fire({
         icon: 'question',
         title: 'Are you sure?',
@@ -221,7 +261,7 @@ ReportTweaks.fn.openModal = function() {
             data: {
                 route: 'reportWrite',
                 field: settings.field,
-                overwrite: !!settings.overwrites,
+                overwrite: !!settings.overwrites, // encoded as "true" or "false" string
                 writeArray: JSON.stringify(ReportTweaks.fn.packageData())
             },
             error: (jqXHR, textStatus, errorThrown) => {
@@ -229,23 +269,40 @@ ReportTweaks.fn.openModal = function() {
                 Swal.fire({
                     icon: 'error',
                     title: 'Oops...',
-                    text: 'There was an issue writing back to the database.\
-                         If possible, leave this window open and contact a RedCap Administrator',
+                    text: "There was an issue writing back to the database."+
+                             "If possible, leave this window open and contact a RedCap Administrator"
                 });
             },
             success: (data) => {
+                // Expected Reuturn value format - 
+                // {"errors":[],"warnings":[],"ids":{"5512":"5512"},"item_count":2} OR
+                // {"warnings":["No data to write"]
                 console.log(data);
+                data = JSON.parse(data);
                 ReportTweaks.writeDone = true;
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Write Back Complete',
-                    text: 'All data was successfully written back to the database',
-                });
+                if ( data.warnings.length || data.errors.length ) { 
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Possible Issue',
+                        text: "There was an issue writing back to the database."+
+                             "If possible, leave this window open and contact a RedCap Administrator"
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Write Back Complete',
+                        text: `Data was successfully written to ${Object.keys(data.ids).length} records`,
+                    });
+                }
             }
         });
     })
 }
 
+/*
+Datatables search function to find values between to points. Points
+can be alpha, numeric, or dates.
+*/
 ReportTweaks.fn.rangeSearch = function(settings, data, dataIndex) {
     let min = $('#tableFilterMin').val();
     let max = $('#tableFilterMax').val();
@@ -265,38 +322,69 @@ ReportTweaks.fn.rangeSearch = function(settings, data, dataIndex) {
     return false;
 }
 
+/*
+Copy all visible data from the report including headers to the user's clipboard as a 
+tab deliminted sheet that can be easily pasted into excel or other software.
+Doesn't use Datatables API.
+*/
 ReportTweaks.fn.copyData = function() {
+    
+    // Find all visible headers and get the field name
     let headers = $("#report_table th:visible :last-child").filter('div').map(function() {
         return $(this).text();
     });
+    
+    // For every cell organize it into our matrix/grid
     let data = $("#report_table td:visible").map(function(index, value) {
         if (index % headers.length == 0)
             return '\n' + $(value).text();
         return $(value).text();
     });
+    
+    // Stuff into the clipboard after inserting delimeters
     navigator.clipboard.writeText(headers.get().join('\t') + data.get().join('\t'));
 }
 
+/*
+Copy all visible data from the report including headers to the user's clipboard as a 
+tab deliminted sheet that can be easily pasted into excel or other software.
+Doesn't use Datatables API.
+*/
 ReportTweaks.fn.mergeRows = function() {
+    
+    // check if we have a record id column, if so be sure its sorted
     let recordCol = $(`#report_table th:contains(${ReportTweaks.record_id})`);
     if (!recordCol.length)
         return;
     if ($(recordCol).index() != 0 && !$(recordCol).hasClass('sorting_asc'))
         $(recordCol).click();
     recordCol = $(recordCol).index();
+    
+    // Setup for loop
     let prev = -1;
     let table = $("#report_table").DataTable();
     let remove = [];
+    
+    // 
     table.rows().every(function(rowIdx, tableLoop, rowLoop) {
+        
+        // Check to see if this and prev row match
+        // If not, bail and go to next row
         let row = this.data();
         let id = $(row[0]).text().split(' ')[0].trim();
         if (id != prev) { prev = id; return; }
         prev = id;
+        
+        // Map all current and previous row data so we can compare display values
+        // Merge the two and if successful continue 
         let currData = $.map(row, (value, key) => typeof value == "string" ? value : value['display']);
         let prevData = $.map(table.row(rowIdx - 1).data(), (value, key) => typeof value == "string" ? value : value['display']);
         let newData = ReportTweaks.fn.mergeArray(currData, prevData);
         if (!newData)
             return;
+        
+        // Populate the row with the merged data and remove
+        // any bad styling. Skip spots where no new data exists
         $(this.node()).find("td").each(function(index, el) {
             if (newData[index] == null)
                 return;
@@ -304,12 +392,20 @@ ReportTweaks.fn.mergeRows = function() {
                 table.cell(rowIdx, index).data(newData[index]);
             $(el).removeClass('nodesig');
         });
+        
+        // Save the node to our remove list
         remove.push(table.row(rowIdx - 1).node());
     });
+    
+    // Review and trash rows that have been merged into others
     remove.forEach((row) => table.row(row).remove());
     table.draw();
 }
 
+/*
+Compares two arrays and if they can be merged without data loss 
+then do so, otherwise return false.
+*/
 ReportTweaks.fn.mergeArray = function(arr1, arr2) {
     let target = [];
     $.each(arr1, function(index, arr1Value) {
@@ -325,6 +421,10 @@ ReportTweaks.fn.mergeArray = function(arr1, arr2) {
     return target;
 }
 
+/*
+Remove rows from the table that contain no data except the record id
+and redcap generated fields.
+*/
 ReportTweaks.fn.removeEmptyRows = function() {
     let table = $("#report_table").DataTable();
     let remove = [];
@@ -339,27 +439,29 @@ ReportTweaks.fn.removeEmptyRows = function() {
     table.draw();
 }
 
-ReportTweaks.fn.hideRepeatCols = function(show = false) {
+/*
+Toggle Column visibility for redcap_repeat_ columns.
+*/
+ReportTweaks.fn.toggleRepeatCols = function(show) {
     let table = $("#report_table").DataTable();
     table.column(ReportTweaks.coreColumnMap['redcap_repeat_instrument']).visible(show);
     table.column(ReportTweaks.coreColumnMap['redcap_repeat_instance']).visible(show);
     ReportTweaks.fn.updateTableWidth();
 }
 
-ReportTweaks.fn.showRepeatCols = function() {
-    ReportTweaks.fn.hideRepeatCols(true);
-}
-
-ReportTweaks.fn.hideEventCol = function(show = false) {
+/*
+Toggle Column visibility for event name column.
+*/
+ReportTweaks.fn.toggleEventCol = function(show) {
     let table = $("#report_table").DataTable();
     table.column(ReportTweaks.coreColumnMap['redcap_event_name']).visible(show);
     ReportTweaks.fn.updateTableWidth();
 }
 
-ReportTweaks.fn.showEventCol = function() {
-    ReportTweaks.fn.hideEventCol(true);
-}
-
+/*
+CSS Tweaking function to resolve odd width behavior.
+Ideally this would be resolved via CSS and this func removed.
+*/
 ReportTweaks.fn.updateTableWidth = function() {
     // Updates the width of the page Selector above the table OR the filter area when 1 page
     if ($(".report_pagenum_div").length)
@@ -369,6 +471,9 @@ ReportTweaks.fn.updateTableWidth = function() {
     ReportTweaks.fn.moveTableHeadersToggle();
 }
 
+/*
+Gather and save current user settings to cookie
+*/
 ReportTweaks.fn.saveCookie = function() {
     let localCookie = {};
     $("#checkboxGrouper input").each((_, el) => { localCookie[$(el).attr('id')] = $(el).is(':checked') });
@@ -376,12 +481,18 @@ ReportTweaks.fn.saveCookie = function() {
     Cookies.set("RedcapReportTweaks", JSON.stringify(ReportTweaks.cookie), { sameSite: 'strict' });
 }
 
+/*
+DOM Tweak for display of the "enable/disable" floating headers button
+for consistancy. 
+*/
 ReportTweaks.fn.moveTableHeadersToggle = function() {
+    
     // Wait for load
     if (!$("#FixedTableHdrsEnable").length) {
         window.requestAnimationFrame(ReportTweaks.fn.moveTableHeadersToggle);
         return;
     }
+    
     // Link hasn't been moved
     if (!$("#FixedTableHdrsEnable").hasClass('ReportTweaksAdjusted')) {
         // Multi page report or Single Page tweak
@@ -391,11 +502,17 @@ ReportTweaks.fn.moveTableHeadersToggle = function() {
             $("#FixedTableHdrsEnable").prependTo('#report_table_filter').addClass('ReportTweaksAdjusted');
         }
     }
+    
     // Multi page report tweak for sizing
     if ($(".report_pagenum_div").length)
         $("#FixedTableHdrsEnable").css('margin-left', Number($(".report_pagenum_div").css('width').replace('px', '')) - 170 + 'px');
 }
 
+/*
+Wait for page to finish loading the report before deploying our tweaks.
+Full build out of the EM occurs here, we re-invoke if changing pages
+on a multipage report. 
+*/
 ReportTweaks.fn.waitForLoad = function() {
     if ($("#report_table thead").length == 0) { // Still Loading
         window.requestAnimationFrame(ReportTweaks.fn.waitForLoad);
@@ -426,7 +543,7 @@ ReportTweaks.fn.waitForLoad = function() {
         ReportTweaks.fn.removeEmptyRows();
     }
     if (!settings.includeEvent) {
-        ReportTweaks.fn.hideEventCol();
+        ReportTweaks.fn.toggleEventCol(false);
         $("#hideEventCol").prop('disabled', true).prop('checked', false).parent().hide();
     }
 
@@ -448,19 +565,25 @@ ReportTweaks.fn.waitForLoad = function() {
     $("#checkboxGrouper input").on('click', ReportTweaks.fn.saveCookie);
 }
 
+/*
+Attach CSS and start the EM load
+*/
 $(document).ready(function() {
     $('head').append(ReportTweaks.css);
     ReportTweaks.fn.waitForLoad();
 });
 
-// You can't avoid polling due to page changing using history push state
-var oldHref = document.location.href;
+/*
+Watch for state histry change (used on multi-page reports)
+You can't avoid polling due to page changing using history push state
+*/
+let ReportTweaks.oldHref = document.location.href;
 window.onload = function() {
-    var bodyList = document.querySelector("body");
-    var observer = new MutationObserver(function(mutations) {
+    let bodyList = document.querySelector("body");
+    let observer = new MutationObserver(function(mutations) {
         mutations.forEach(function(mutation) {
-            if (oldHref != document.location.href) {
-                oldHref = document.location.href;
+            if (ReportTweaks.oldHref != document.location.href) {
+                ReportTweaks.oldHref = document.location.href;
                 ReportTweaks.fn.waitForLoad();
             }
         });

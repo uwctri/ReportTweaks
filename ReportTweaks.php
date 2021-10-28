@@ -39,7 +39,6 @@ class ReportTweaks extends AbstractExternalModule {
     public function reportWrite() {
         // Gather info
         $writeBackData = (array) json_decode($_POST['writeArray'],true);
-        $dd = REDCap::getDataDictionary($pid,'array');
         $pid = $_GET['pid'];
         $field = $_POST['field'];
         $overwrite = json_decode($_POST['overwrite']);
@@ -75,9 +74,8 @@ class ReportTweaks extends AbstractExternalModule {
             
             // Set value on repeat or single instrument
             if( !empty($instrument) ) {
-                if( $dd[$field]['form_name'] == $instrument ) {
-                    $writeArray[$record]["repeat_instances"][$event][$instrument][$instance][$field] = $data['val'];
-                }
+                // Note: Field might not be on instrument if malicious, saveData will catch this though
+                $writeArray[$record]["repeat_instances"][$event][$instrument][$instance][$field] = $data['val'];
             } else {
                 $writeArray[$record][$event][$field] = $data['val'];
             }

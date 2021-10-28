@@ -41,7 +41,7 @@ ReportTweaks.html.wbModal = `
 <div class="row">
     <label class="col-sm-4 control-label" for="modalText">Popup Message</label>
     <div class="col-sm-8">                     
-        <textarea class="form-control" id="modalText" name="modalText">Are you sure?</textarea>
+        <textarea class="form-control" id="modalText" name="modalText" placeholder="Explination here. You can use HTML tags!"></textarea>
     </div>
 </div>
 <div class="row">
