@@ -365,7 +365,7 @@ ReportTweaks.fn.mergeRows = function() {
     let table = $("#report_table").DataTable();
     let remove = [];
     
-    // 
+    // Loop over all rows in the table
     table.rows().every(function(rowIdx, tableLoop, rowLoop) {
         
         // Check to see if this and prev row match
@@ -388,9 +388,10 @@ ReportTweaks.fn.mergeRows = function() {
         $(this.node()).find("td").each(function(index, el) {
             if (newData[index] == null)
                 return;
-            if ($(el).html() != newData[index])
-                table.cell(rowIdx, index).data(newData[index]);
             $(el).removeClass('nodesig');
+            if ($(el).html() != newData[index]) {
+                table.cell(rowIdx, index).data(newData[index]);
+            }
         });
         
         // Save the node to our remove list
@@ -400,6 +401,40 @@ ReportTweaks.fn.mergeRows = function() {
     // Review and trash rows that have been merged into others
     remove.forEach((row) => table.row(row).remove());
     table.draw();
+    
+    // Loop over every column to find those with dates in them, 
+    // we only walk down a col until we find a non-blank so this
+    // doesn't take much time
+    let buildCache = [];
+    table.columns().every( function(colIdx) {
+        if ( Object.values(ReportTweaks.coreColumnMap).includes(colIdx) )
+            return;
+        $.each(this.data(), function(i,el) {
+            el = el.split(' ')[0];
+            if ( el && (isDate(el,"y-m-d") || isDate(el,"m-d-y") ) )
+                buildCache.push(colIdx);
+            if ( el ) return false;
+        });
+    });
+    
+    // Init the cache
+    // For the step below we need to init the sorting cache in Datatables
+    // otherwise we will need to x = x || {}; every row which is expensive-ish.
+    table.rows().every( function(rowIdx) {
+        $.fn.dataTable.settings[0].aoData[rowIdx]._aSortData = [];
+    });
+        
+    // Rebuild the cache for sorting
+    // Data Tables doesn't allow for chaning ordering/sorting functions after
+    // init nor does it expose plugin tools to do so. We are forced to manually
+    // rebuild the cache via un-documented means. We must do this after the draw.
+    buildCache.forEach( function(colIdx) {
+        table.rows().every( function(rowIdx) {
+            let [date, time] = (this.data()[colIdx].display || this.data()[colIdx]).split(' ');
+            $.fn.dataTable.settings[0].aoData[rowIdx]._aSortData[colIdx] = 
+                parseInt(date_mdy2ymd(date).replaceAll('-','')+(time||"").replace(':',''));
+        });
+    });
 }
 
 /*
