@@ -1,7 +1,7 @@
 ReportTweaks.fn = {};
 ReportTweaks.html = {};
 ReportTweaks.cookie = {};
-ReportTweaks.DateRegex = /^\d{2}\-\d{2}\-\d{4}$/;
+ReportTweaks.isAnyDate = RegExp('[0-9]{2,4}-[0-9]{2}-[0-9]{2,4}');
 
 ReportTweaks.html.copyBtn = `<a href="#" class="btn btn-secondary btn-sm mb-1" role="button" id="copyDataBtn"><i class="fas fa-clipboard"></i></a>`;
 
@@ -309,9 +309,9 @@ ReportTweaks.fn.rangeSearch = function(settings, data, dataIndex) {
     let target = $('#minmaxpivot').val() || "";
     let pivot = data[$("#report_table th").index($(`th:contains(${target})`))] || 0;
 
-    min = isNumeric(min) ? Number(min) : ReportTweaks.DateRegex.test(min) ? date_mdy2ymd(min.replaceAll('/', '-')) : min;
-    max = isNumeric(max) ? Number(max) : ReportTweaks.DateRegex.test(max) ? date_mdy2ymd(max.replaceAll('/', '-')) : max;
-    pivot = isNumeric(pivot) ? Number(pivot) : ReportTweaks.DateRegex.test(pivot) ? date_mdy2ymd(pivot.replaceAll('/', '-')) : pivot;
+    min = isNumeric(min) ? Number(min) : isDate(min, 'm-d-y') ? date_mdy2ymd(min.replaceAll('/', '-')) : min;
+    max = isNumeric(max) ? Number(max) : isDate(max, 'm-d-y') ? date_mdy2ymd(max.replaceAll('/', '-')) : max;
+    pivot = isNumeric(pivot) ? Number(pivot) : isDate(pivot, 'm-d-y') ? date_mdy2ymd(pivot.replaceAll('/', '-')) : pivot;
 
     if ((min === "" && max === "") ||
         (target === "") ||
@@ -411,7 +411,7 @@ ReportTweaks.fn.mergeRows = function() {
             return;
         $.each(this.data(), function(i,el) {
             el = el.split(' ')[0];
-            if ( el && (isDate(el,"y-m-d") || isDate(el,"m-d-y") ) )
+            if ( el && ReportTweaks.isAnyDate.test(el) )
                 buildCache.push(colIdx);
             if ( el ) return false;
         });
@@ -431,8 +431,9 @@ ReportTweaks.fn.mergeRows = function() {
     buildCache.forEach( function(colIdx) {
         table.rows().every( function(rowIdx) {
             let [date, time] = (this.data()[colIdx].display || this.data()[colIdx]).split(' ');
+            date = isDate(date,"m-d-y") ? date_mdy2ymd(date) : date;
             $.fn.dataTable.settings[0].aoData[rowIdx]._aSortData[colIdx] = 
-                parseInt(date_mdy2ymd(date).replaceAll('-','')+(time||"").replace(':',''));
+                parseInt(date.replaceAll('-','')+(time||"").replace(':',''));
         });
     });
 }
