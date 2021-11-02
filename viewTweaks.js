@@ -424,13 +424,20 @@ ReportTweaks.fn.mergeRows = function() {
         $.fn.dataTable.settings[0].aoData[rowIdx]._aSortData = [];
     });
         
-    // Rebuild the cache for sorting
+    // Rebuild the cache for sorting dates
     // Data Tables doesn't allow for chaning ordering/sorting functions after
     // init nor does it expose plugin tools to do so. We are forced to manually
     // rebuild the cache via un-documented means. We must do this after the draw.
     buildCache.forEach( function(colIdx) {
         table.rows().every( function(rowIdx) {
-            let [date, time] = (this.data()[colIdx].display || this.data()[colIdx]).split(' ');
+            let data = this.data()[colIdx];
+            if ( data instanceof Object )
+                data = this.data()[colIdx].display
+            if ( !data ) {
+                $.fn.dataTable.settings[0].aoData[rowIdx]._aSortData[colIdx] = 0;
+                return;
+            }
+            let [date, time] = data.split(' ');
             date = isDate(date,"m-d-y") ? date_mdy2ymd(date) : date;
             $.fn.dataTable.settings[0].aoData[rowIdx]._aSortData[colIdx] = 
                 parseInt(date.replaceAll('-','')+(time||"").replace(':',''));
