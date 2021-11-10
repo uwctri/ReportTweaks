@@ -2,12 +2,6 @@ ReportTweaks.fn = {};
 ReportTweaks.cookie = {};
 ReportTweaks.isAnyDate = RegExp('[0-9]{2,4}-[0-9]{2}-[0-9]{2,4}');
 
-Date.prototype.addDays = function(days) {
-    let date = new Date(this.valueOf());
-    date.setDate(date.getDate() + days);
-    return date;
-}
-
 /*
 Manipulate DOM to insert the Copy Button regardless
 of report format.
@@ -84,6 +78,7 @@ ReportTweaks.fn.packageData = function() {
     let table = $("#report_table").DataTable();
     let settings = ReportTweaks.settings[getParameterByName('report_id')]['_wb'];
     let counter = 0;
+    let counterDay = new Date(today);
 
     table.rows().every(function() {
         if (!$(this.node()).is(':visible'))
@@ -99,11 +94,12 @@ ReportTweaks.fn.packageData = function() {
 
         if (settings.increment) {
             if (type == "today") {
-                writeValue = (new Date(writeValue)).addDays(counter).toISOString().split('T')[0];
+                writeValue = counterDay.toISOString().split('T')[0];
             } else {
                 writeValue = (Number(writeValue) + counter).toString();
             }
             counter++;
+            counterDay.setDate(counterDay.getDate() + 1);
         }
 
         let record = $(data[ReportTweaks.coreColumnMap[ReportTweaks.record_id]])[0].text;
