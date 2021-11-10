@@ -1,6 +1,6 @@
 {
     "name": "Report Tweaks",
-    "description": "Configurable Display Enhancments for Redcap Reports",
+    "description": "Configurable Display Enhancments for REDCap Reports",
     "namespace": "UWMadison\\ReportTweaks",
     "authors": [
         {

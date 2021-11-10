@@ -1,22 +1,7 @@
 ReportTweaks.fn = {};
 ReportTweaks.html = {};
 ReportTweaks.modalSettings = {};
-ReportTweaks.css = `
-<style>
-.wbModal .row {
-    margin-top: 10px;
-}
-.wbModal label {
-    text-align: right;
-}
-.swal2-content {
-    padding: 0;
-}
-#tweaks_config {
-    cursor: pointer;
-}
-</style>
-`;
+
 ReportTweaks.html.dashboard = `
 <div style="margin:0 0 4px 20px;text-indent:-18px;">
     <input name="tweaks_includeEvent" type="checkbox"> Include <code>redcap_event_name</code> in the report.
@@ -28,8 +13,9 @@ ReportTweaks.html.dashboard = `
     <input name="tweaks_removeEmpty" type="checkbox"> Remove rows with no data (i.e. empty) other than <code>redcap_</code> variables and <code>record_id</code>.
 </div>
 <div style="margin:0 0 4px 20px;text-indent:-18px;">
-    <input name="tweaks_writeback" type="checkbox"> Add a button to write data back to the database. Useful for removing records from a report or flagging records as reviewed. <br/> <span id="tweaks_config"><i class="fas fa-cog ml-3" style="color:grey"></i>Configure</span>
+    <input name="tweaks_writeback" type="checkbox"> Add a button to write data back to the database. Useful for removing records from a report or flagging records as reviewed. <br/> <span id="openWriteBackModal"><i class="fas fa-cog ml-3" style="color:grey"></i>Configure</span>
 </div>`;
+
 ReportTweaks.html.wbModal = `
 <div class="container wbModal">
 <div class="row">
@@ -113,15 +99,23 @@ ReportTweaks.html.wbModal = `
 </div>
 </div>`;
 
+/*
+Load existing settings and populate the choices onto the page
+*/
 ReportTweaks.fn.loadSettings = function() {
     let settings = ReportTweaks.settings[getParameterByName('report_id')] || ReportTweaks.defaultSettings;
     $.each(settings, (key, val) => $(`input[name=tweaks_${key}]`).prop('checked', val));
     ReportTweaks.modalSettings = settings['_wb'] || ReportTweaks.modalSettings;
 }
 
+/*
+Load existing settings and populate the choices onto the page
+*/
 ReportTweaks.fn.saveSettings = function() {
     let settings = {};
-    $("input[name^=tweaks_]").each((_, el) => { settings[$(el).attr('name').replace('tweaks_', '')] = $(el).is(':checked') });
+    $("input[name^=tweaks_]").each((_, el) => {
+        settings[$(el).attr('name').replace('tweaks_', '')] = $(el).is(':checked')
+    });
     settings['_wb'] = ReportTweaks.modalSettings;
     $.ajax({
         method: 'POST',
@@ -139,7 +133,10 @@ ReportTweaks.fn.saveSettings = function() {
 ReportTweaks.fn.openModal = function() {
     Swal.fire({
         title: 'DB Writeback Config',
-        html: ReportTweaks.html.wbModal
+        html: ReportTweaks.html.wbModal,
+        customClass: {
+            container: 'writeBackModal'
+        }
     }).then(() => {
         // Save settings on close, not written to DB
         ReportTweaks.modalSettings = {};
@@ -182,13 +179,12 @@ ReportTweaks.fn.openModal = function() {
 }
 
 $(document).ready(function() {
-    $("head").append(ReportTweaks.css);
     let reportOpt = $("td:contains(Additional report options)").parent();
     reportOpt.next().after(reportOpt.prev().nextAll(':lt(2)').addBack().clone().addClass('reportTweaks'));
     $(".reportTweaks div").first().html("<i class='fas fa-tag'></i> Report Tweaks");
     $(".reportTweaks").last().find('div').remove();
     $(".reportTweaks td").last().append(ReportTweaks.html.dashboard);
     ReportTweaks.fn.loadSettings();
-    $("#tweaks_config").click(ReportTweaks.fn.openModal);
+    $("#openWriteBackModal").click(ReportTweaks.fn.openModal);
     $("#save-report-btn").click(ReportTweaks.fn.saveSettings);
 });

@@ -1,6 +1,8 @@
 $(document).ready(function() {
+    
     console.log("Loaded report tweaks config")
     var $modal = $('#external-modules-configure-modal');
+    
     $modal.on('show.bs.modal', function() {
         // Making sure we are overriding this modules's modal only.
         if ($(this).data('module') !== ReportTweaks.modulePrefix)
@@ -28,9 +30,7 @@ $(document).ready(function() {
         // Making sure we are overriding this modules's modal only.
         if ($(this).data('module') !== ReportTweaks.modulePrefix)
             return;
-
         if (typeof ExternalModules.Settings.prototype.resetConfigInstancesOld !== 'undefined')
             ExternalModules.Settings.prototype.resetConfigInstances = ExternalModules.Settings.prototype.resetConfigInstancesOld;
-
     });
 });

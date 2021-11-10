@@ -45,22 +45,6 @@ ReportTweaks.html.modalInput = `
     <input type="text" class="swal2-input mt-0 mb-0" id="ID">
 </div>`;
 
-ReportTweaks.css = `
-<style>
-#copyDataBtn{
-    color: #aaa;
-    background-color: #eee;
-    border-color: #eee;
-}
-#reportCopyAlert{
-    width: 771px;
-    border-color:#ffeeba!important;
-}
-#report_table{
-    min-width: 900px;
-}
-</style>`;
-
 Date.prototype.addDays = function(days) {
     let date = new Date(this.valueOf());
     date.setDate(date.getDate() + days);
@@ -91,7 +75,7 @@ Event and Redcap repeat vars. Hides the boxes after insert
 if they are not able to be used.
 */
 ReportTweaks.fn.insertCheckboxes = function() {
-    
+
     // Insert into the DOM
     $("#report_div .d-print-none").eq(1).append(ReportTweaks.html.checkboxes);
     if (!Number.isInteger(ReportTweaks.coreColumnMap['redcap_repeat_instrument'])) {
@@ -100,7 +84,7 @@ ReportTweaks.fn.insertCheckboxes = function() {
     if (!Number.isInteger(ReportTweaks.coreColumnMap['redcap_event_name'])) {
         $("#hideEventCol").prop('disabled', true).prop('checked', false).parent().hide();
     }
-    
+
     // Add events to toggle col visibility
     let fn = ReportTweaks.fn;
     $("#hideRepeatCols").on('click', function() { fn.toggleRepeatCols(!this.checked) });
@@ -170,7 +154,7 @@ ReportTweaks.fn.packageData = function() {
         let instance = data[ReportTweaks.coreColumnMap['redcap_repeat_instance']] || "";
         writeArray.push({
             'record': record,
-            'event': eventid,         // Can be event id or display name
+            'event': eventid, // Can be event id or display name
             'instrument': instrument, // Always display name, mapped server side
             'instance': instance,
             'val': writeValue,
@@ -204,7 +188,7 @@ ReportTweaks.fn.openModal = function() {
         });
         return;
     }
-    
+
     // Record ID is missing from the report
     if (!isNumeric(ReportTweaks.coreColumnMap[ReportTweaks.record_id])) {
         Swal.fire({...defaults,
@@ -213,7 +197,7 @@ ReportTweaks.fn.openModal = function() {
         });
         return;
     }
-    
+
     // Bad configuration
     if (!settings.field) {
         Swal.fire({...defaults,
@@ -222,7 +206,7 @@ ReportTweaks.fn.openModal = function() {
         });
         return;
     }
-    
+
     // Write back has occured once already
     if (ReportTweaks.writeDone) {
         Swal.fire({...defaults,
@@ -240,7 +224,7 @@ ReportTweaks.fn.openModal = function() {
             .replace('LABEL', ReportTweaks.fn.toTitleCase(settings.field))
             .replace('ID', settings.field) + '&nbsp;';
     }
-    
+
     // Display modal and handle response from server
     Swal.fire({
         icon: 'question',
@@ -269,8 +253,8 @@ ReportTweaks.fn.openModal = function() {
                 Swal.fire({
                     icon: 'error',
                     title: 'Oops...',
-                    text: "There was an issue writing back to the database."+
-                             "If possible, leave this window open and contact a RedCap Administrator"
+                    text: "There was an issue writing back to the database." +
+                        "If possible, leave this window open and contact a RedCap Administrator"
                 });
             },
             success: (data) => {
@@ -280,12 +264,12 @@ ReportTweaks.fn.openModal = function() {
                 console.log(data);
                 data = JSON.parse(data);
                 ReportTweaks.writeDone = true;
-                if ( data.warnings.length || data.errors.length ) { 
+                if (data.warnings.length || data.errors.length) {
                     Swal.fire({
                         icon: 'warning',
                         title: 'Possible Issue',
-                        text: "There was an issue writing back to the database."+
-                             "If possible, leave this window open and contact a RedCap Administrator"
+                        text: "There was an issue writing back to the database." +
+                            "If possible, leave this window open and contact a RedCap Administrator"
                     });
                 } else {
                     Swal.fire({
@@ -328,19 +312,19 @@ tab deliminted sheet that can be easily pasted into excel or other software.
 Doesn't use Datatables API.
 */
 ReportTweaks.fn.copyData = function() {
-    
+
     // Find all visible headers and get the field name
     let headers = $("#report_table th:visible :last-child").filter('div').map(function() {
         return $(this).text();
     });
-    
+
     // For every cell organize it into our matrix/grid
     let data = $("#report_table td:visible").map(function(index, value) {
         if (index % headers.length == 0)
             return '\n' + $(value).text();
         return $(value).text();
     });
-    
+
     // Stuff into the clipboard after inserting delimeters
     navigator.clipboard.writeText(headers.get().join('\t') + data.get().join('\t'));
 }
@@ -351,7 +335,7 @@ tab deliminted sheet that can be easily pasted into excel or other software.
 Doesn't use Datatables API.
 */
 ReportTweaks.fn.mergeRows = function() {
-    
+
     // check if we have a record id column, if so be sure its sorted
     let recordCol = $(`#report_table th:contains(${ReportTweaks.record_id})`);
     if (!recordCol.length)
@@ -359,22 +343,22 @@ ReportTweaks.fn.mergeRows = function() {
     if ($(recordCol).index() != 0 && !$(recordCol).hasClass('sorting_asc'))
         $(recordCol).click();
     recordCol = $(recordCol).index();
-    
+
     // Setup for loop
     let prev = -1;
     let table = $("#report_table").DataTable();
     let remove = [];
-    
+
     // Loop over all rows in the table
     table.rows().every(function(rowIdx, tableLoop, rowLoop) {
-        
+
         // Check to see if this and prev row match
         // If not, bail and go to next row
         let row = this.data();
         let id = $(row[0]).text().split(' ')[0].trim();
         if (id != prev) { prev = id; return; }
         prev = id;
-        
+
         // Map all current and previous row data so we can compare display values
         // Merge the two and if successful continue 
         let currData = $.map(row, (value, key) => typeof value == "string" ? value : value['display']);
@@ -382,7 +366,7 @@ ReportTweaks.fn.mergeRows = function() {
         let newData = ReportTweaks.fn.mergeArray(currData, prevData);
         if (!newData)
             return;
-        
+
         // Populate the row with the merged data and remove
         // any bad styling. Skip spots where no new data exists
         $(this.node()).find("td").each(function(index, el) {
@@ -393,54 +377,54 @@ ReportTweaks.fn.mergeRows = function() {
                 table.cell(rowIdx, index).data(newData[index]);
             }
         });
-        
+
         // Save the node to our remove list
         remove.push(table.row(rowIdx - 1).node());
     });
-    
+
     // Review and trash rows that have been merged into others
     remove.forEach((row) => table.row(row).remove());
     table.draw();
-    
+
     // Loop over every column to find those with dates in them, 
     // we only walk down a col until we find a non-blank so this
     // doesn't take much time
     let buildCache = [];
-    table.columns().every( function(colIdx) {
-        if ( Object.values(ReportTweaks.coreColumnMap).includes(colIdx) )
+    table.columns().every(function(colIdx) {
+        if (Object.values(ReportTweaks.coreColumnMap).includes(colIdx))
             return;
-        $.each(this.data(), function(i,el) {
+        $.each(this.data(), function(i, el) {
             el = el.split(' ')[0];
-            if ( el && ReportTweaks.isAnyDate.test(el) )
+            if (el && ReportTweaks.isAnyDate.test(el))
                 buildCache.push(colIdx);
-            if ( el ) return false;
+            if (el) return false;
         });
     });
-    
+
     // Init the cache
     // For the step below we need to init the sorting cache in Datatables
     // otherwise we will need to x = x || {}; every row which is expensive-ish.
-    table.rows().every( function(rowIdx) {
+    table.rows().every(function(rowIdx) {
         $.fn.dataTable.settings[0].aoData[rowIdx]._aSortData = [];
     });
-        
+
     // Rebuild the cache for sorting dates
     // Data Tables doesn't allow for chaning ordering/sorting functions after
     // init nor does it expose plugin tools to do so. We are forced to manually
     // rebuild the cache via un-documented means. We must do this after the draw.
-    buildCache.forEach( function(colIdx) {
-        table.rows().every( function(rowIdx) {
+    buildCache.forEach(function(colIdx) {
+        table.rows().every(function(rowIdx) {
             let data = this.data()[colIdx];
-            if ( data instanceof Object )
+            if (data instanceof Object)
                 data = this.data()[colIdx].display
-            if ( !data ) {
+            if (!data) {
                 $.fn.dataTable.settings[0].aoData[rowIdx]._aSortData[colIdx] = 0;
                 return;
             }
             let [date, time] = data.split(' ');
-            date = isDate(date,"m-d-y") ? date_mdy2ymd(date) : date;
-            $.fn.dataTable.settings[0].aoData[rowIdx]._aSortData[colIdx] = 
-                parseInt(date.replaceAll('-','')+(time||"").replace(':',''));
+            date = isDate(date, "m-d-y") ? date_mdy2ymd(date) : date;
+            $.fn.dataTable.settings[0].aoData[rowIdx]._aSortData[colIdx] =
+                parseInt(date.replaceAll('-', '') + (time || "").replace(':', ''));
         });
     });
 }
@@ -529,13 +513,13 @@ DOM Tweak for display of the "enable/disable" floating headers button
 for consistancy. 
 */
 ReportTweaks.fn.moveTableHeadersToggle = function() {
-    
+
     // Wait for load
     if (!$("#FixedTableHdrsEnable").length) {
         window.requestAnimationFrame(ReportTweaks.fn.moveTableHeadersToggle);
         return;
     }
-    
+
     // Link hasn't been moved
     if (!$("#FixedTableHdrsEnable").hasClass('ReportTweaksAdjusted')) {
         // Multi page report or Single Page tweak
@@ -545,7 +529,7 @@ ReportTweaks.fn.moveTableHeadersToggle = function() {
             $("#FixedTableHdrsEnable").prependTo('#report_table_filter').addClass('ReportTweaksAdjusted');
         }
     }
-    
+
     // Multi page report tweak for sizing
     if ($(".report_pagenum_div").length)
         $("#FixedTableHdrsEnable").css('margin-left', Number($(".report_pagenum_div").css('width').replace('px', '')) - 170 + 'px');
@@ -612,7 +596,6 @@ ReportTweaks.fn.waitForLoad = function() {
 Attach CSS and start the EM load
 */
 $(document).ready(function() {
-    $('head').append(ReportTweaks.css);
     ReportTweaks.fn.waitForLoad();
 });
 

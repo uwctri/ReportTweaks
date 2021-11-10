@@ -1,0 +1,30 @@
+/*View Report Page*/
+
+#copyDataBtn {
+    color: #aaa;
+    background-color: #eee;
+    border-color: #eee;
+}
+
+#report_table {
+    min-width: 900px;
+}
+
+
+/*Edit Report Page*/
+
+.writeBackModal .row {
+    margin-top: 10px;
+}
+
+.writeBackModal label {
+    text-align: right;
+}
+
+.writeBackModal {
+    padding: 0;
+}
+
+#openWriteBackModal {
+    cursor: pointer;
+}
