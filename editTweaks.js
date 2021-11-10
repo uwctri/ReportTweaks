@@ -1,103 +1,5 @@
 ReportTweaks.fn = {};
-ReportTweaks.html = {};
 ReportTweaks.modalSettings = {};
-
-ReportTweaks.html.dashboard = `
-<div style="margin:0 0 4px 20px;text-indent:-18px;">
-    <input name="tweaks_includeEvent" type="checkbox"> Include <code>redcap_event_name</code> in the report.
-</div>
-<div style="margin:0 0 4px 20px;text-indent:-18px;">
-    <input name="tweaks_merge" type="checkbox"> Combine rows representing the same record.
-</div>
-<div style="margin:0 0 4px 20px;text-indent:-18px;">
-    <input name="tweaks_removeEmpty" type="checkbox"> Remove rows with no data (i.e. empty) other than <code>redcap_</code> variables and <code>record_id</code>.
-</div>
-<div style="margin:0 0 4px 20px;text-indent:-18px;">
-    <input name="tweaks_writeback" type="checkbox"> Add a button to write data back to the database. Useful for removing records from a report or flagging records as reviewed. <br/> <span id="openWriteBackModal"><i class="fas fa-cog ml-3" style="color:grey"></i>Configure</span>
-</div>`;
-
-ReportTweaks.html.wbModal = `
-<div class="container wbModal">
-<div class="row">
-    <label class="col-sm-4 control-label" for="modalBtn">Button Text</label>  
-    <div class="col-sm-8">
-        <input id="modalBtn" name="modalBtn" type="text" placeholder="Mark as Complete" class="form-control input-md">
-    </div>
-</div>
-<div class="row">
-    <label class="col-sm-4 control-label" for="modalText">Popup Message</label>
-    <div class="col-sm-8">                     
-        <textarea class="form-control" id="modalText" name="modalText" placeholder="Explination here. You can use HTML tags!"></textarea>
-    </div>
-</div>
-<div class="row">
-    <label class="col-sm-4 control-label" for="footer">Footer Text</label>
-    <div class="col-sm-8">
-        <textarea class="form-control" id="footer" name="footer"></textarea>
-    </div>
-</div>
-<div class="row">
-    <label class="col-sm-4 control-label" for="event">Event</label>
-    <div class="col-sm-8">
-        <select id="event" name="event" class="form-control">
-            <option value="">NA/Pull From Report</option>
-        </select>
-    </div>
-</div>
-<div class="row">
-    <label class="col-sm-4 control-label" for="field">Field</label>
-    <div class="col-sm-8">
-        <select id="field" name="field" class="form-control">
-        </select>
-    </div>
-</div>
-<div class="row">
-    <label class="col-md-4 control-label" for="writeType">Write Value</label>
-    <div class="col-md-8 text-left">
-        <div class="radio">
-            <label for="writeType-ask">
-                <input type="radio" name="writeType" id="writeType-ask" value="ask" checked="checked">
-                Ask User for Write Value
-            </label>
-        </div>
-        <div class="radio">
-            <label for="writeType-static">
-                <input type="radio" name="writeType" id="writeType-static" value="static">
-                Static
-            </label>
-        </div>
-        <div class="radio">
-            <label for="writeType-today">
-                <input type="radio" name="writeType" id="writeType-today" value="today">
-                Today's Date
-            </label>
-        </div>
-    </div>
-</div>
-<div class="row" id="writeStaticRow" style="display:none">
-    <label class="col-sm-4 control-label" for="writeStatic">Write Value</label>  
-    <div class="col-sm-8">
-        <input id="writeStatic" name="writeStatic" type="text" placeholder="" class="form-control input-md">
-    </div>
-</div>
-<div class="row">
-    <div class="col-sm-2"></div>
-    <div class="col-sm-10 text-left">
-        <div class="checkbox">
-            <label for="overwrites">
-                <input type="checkbox" name="overwrites" id="overwrites" value="1">
-                Allow Data Overwrites
-            </label>
-        </div>
-        <div class="checkbox">
-            <label for="increment">
-                <input type="checkbox" name="increment" id="increment" value="1">
-                Increment Write Value per Row
-            </label>
-        </div>
-    </div>
-</div>
-</div>`;
 
 /*
 Load existing settings and populate the choices onto the page
@@ -112,11 +14,16 @@ ReportTweaks.fn.loadSettings = function() {
 Load existing settings and populate the choices onto the page
 */
 ReportTweaks.fn.saveSettings = function() {
+
     let settings = {};
+
+    // Collect all current settings 
     $("input[name^=tweaks_]").each((_, el) => {
         settings[$(el).attr('name').replace('tweaks_', '')] = $(el).is(':checked')
     });
     settings['_wb'] = ReportTweaks.modalSettings;
+
+    // Post back to DB
     $.ajax({
         method: 'POST',
         url: ReportTweaks.router,
@@ -130,14 +37,19 @@ ReportTweaks.fn.saveSettings = function() {
     });
 }
 
+/*
+Display the Write back config modal, load current settings & save settins on close
+*/
 ReportTweaks.fn.openModal = function() {
+
     Swal.fire({
         title: 'DB Writeback Config',
-        html: ReportTweaks.html.wbModal,
+        html: ReportTweaks.html.find('#rtModal').html(),
         customClass: {
             container: 'writeBackModal'
         }
     }).then(() => {
+
         // Save settings on close, not written to DB
         ReportTweaks.modalSettings = {};
         $(".wbModal").find('input, select, textarea').each(function() {
@@ -156,16 +68,16 @@ ReportTweaks.fn.openModal = function() {
     $("input[name=writeType]").on('change', function() {
         $("#writeStaticRow").toggle(this.value == "static")
     }).change();
-    let select = $("select[name=event]");
+    let dropdown = $("select[name=event]");
     $("#filter_events option").each(function() {
-        select.append(new Option(this.text, this.value))
+        dropdown.append(new Option(this.text, this.value))
     });
-    select = $("select[name=field]");
+    dropdown = $("select[name=field]");
     $.each(Object.keys(fieldForms), function() {
-        select.append(new Option(this, this))
+        dropdown.append(new Option(this, this))
     });
 
-    // Load Settings
+    // Load Existing Writeback Settings
     $.each(ReportTweaks.modalSettings, function(key, setting) {
         $el = $(`.wbModal [name=${key}]`);
         if ($el.attr('type') == "checkbox") {
@@ -179,11 +91,20 @@ ReportTweaks.fn.openModal = function() {
 }
 
 $(document).ready(function() {
+
+    // Load the templates
+    ReportTweaks.html = $($("template").prop('content'));
+
+    // Insert a new box area for our custom settings
     let reportOpt = $("td:contains(Additional report options)").parent();
     reportOpt.next().after(reportOpt.prev().nextAll(':lt(2)').addBack().clone().addClass('reportTweaks'));
-    $(".reportTweaks div").first().html("<i class='fas fa-tag'></i> Report Tweaks");
+
+    // Style the box with title, populate with template
+    $(".reportTweaks div").first().html(ReportTweaks.html.find('#rtTitle').html());
     $(".reportTweaks").last().find('div').remove();
-    $(".reportTweaks td").last().append(ReportTweaks.html.dashboard);
+    $(".reportTweaks td").last().append(ReportTweaks.html.find('#rtDashboard').html());
+
+    // Load settings and prep them clicks
     ReportTweaks.fn.loadSettings();
     $("#openWriteBackModal").click(ReportTweaks.fn.openModal);
     $("#save-report-btn").click(ReportTweaks.fn.saveSettings);

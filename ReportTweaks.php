@@ -26,6 +26,7 @@ class ReportTweaks extends AbstractExternalModule {
         elseif (PAGE == 'DataExport/index.php' && $project_id != NULL && $_GET['report_id']) {
             $this->initGlobal();
             $this->includeCSS();
+            include('templates.php');
             if ( $_GET['addedit'] ) {
                 $this->includeJs('editTweaks.js');
             } else {
