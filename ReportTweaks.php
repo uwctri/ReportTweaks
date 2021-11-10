@@ -148,6 +148,9 @@ class ReportTweaks extends AbstractExternalModule {
         echo "<script src={$this->getUrl($path)}></script>";
     }
 
+    /*
+    HTML to include the local css file
+    */
     private function includeCSS() {
         echo "<link rel='stylesheet' href={$this->getURL('style.css')}>";
     }

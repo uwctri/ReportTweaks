@@ -10,7 +10,7 @@ This EM isn't yet available to install via redcap's EM database so you'll need t
 
 ## Configuration
 
-Configuration is done on the edit report screen under a new "Report Tweaks" sectio. Some settings can also be toggled on the report itself.
+Configuration is done on the edit report screen under a new "Report Tweaks" section. Some settings can also be toggled on the report itself.
 
 ## Call Outs
 
