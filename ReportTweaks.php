@@ -138,14 +138,14 @@ class ReportTweaks extends AbstractExternalModule {
     HTML to include the cookie.js CDN 
     */
     private function includeCookies() {
-        echo "<script type='text/javascript' src={$this->getURL('cookie.min.js')}></script>";
+        echo "<script type='text/javascript' src={$this->getURL('js/cookie.min.js')}></script>";
     }
     
     /*
     HTML to include some local JS file
     */
     private function includeJs($path) {
-        echo "<script src={$this->getUrl($path)}></script>";
+        echo "<script src={$this->getUrl('js/'.$path)}></script>";
     }
 
     /*
