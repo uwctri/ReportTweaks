@@ -8,7 +8,6 @@ use REDCap;
 class ReportTweaks extends AbstractExternalModule {
     
     private $module_global = 'ReportTweaks';
-    private $cookieJS = "https://cdn.jsdelivr.net/npm/js-cookie@3.0.1/dist/js.cookie.min.js";
     private $defaultSettings = ['includeEvent'=>true];
     
     /*
@@ -139,7 +138,7 @@ class ReportTweaks extends AbstractExternalModule {
     HTML to include the cookie.js CDN 
     */
     private function includeCookies() {
-        echo "<script type='text/javascript' src={$this->cookieJS}></script>";
+        echo "<script type='text/javascript' src={$this->getURL('cookie.min.js')}></script>";
     }
     
     /*

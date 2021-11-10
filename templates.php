@@ -1,6 +1,8 @@
 <template>
 
-<div id="rtTitle"><i class='fas fa-tag'></i> Report Tweaks<div>
+<!-- Edit Report Page -->
+
+<div id="rtTitle"><i class='fas fa-tag'></i> Report Tweaks</div>
 
 <div id="rtDashboard">
     <div style="margin:0 0 4px 20px;text-indent:-18px;">
@@ -98,4 +100,47 @@
         </div>
     </div>
 </div>
+
+<!-- View Report Page -->
+
+<div id="rtCopyDataBtn"><a href="#" class="btn btn-secondary btn-sm mb-1 copyDataBtn" role="button"><i class="fas fa-clipboard"></i></a></div>
+
+<div id="rtFilters">
+    <span class="dataTables_filter">
+        <label><input type="text" placeholder="Maximum" id="tableFilterMax" tabindex=3></label>
+    </span>
+    <span class="dataTables_filter">
+        <label><input type="text" placeholder="Minimum" id="tableFilterMin" tabindex=2></label>
+    </span>
+    <span class="dataTables_filter">
+        <select id="minmaxpivot">
+            <option value="" selected disabled hidden>Filter Range On...</option>
+        </select>
+    </span>
+</div>
+
+<div class="container p-0 mt-1" style="max-width:420px" id="rtCheckboxes">
+    <div class="row no-gutters">
+        <div class="col-md-5">
+            <span class="font-weight-bold">Hide Event Column: </span>
+            <input type='checkbox' class='checkbox-inline' id='hideEventCol'>
+        </div>
+        <div class="col-md-7">
+            <span class="font-weight-bold">Hide Repeating Form Columns: </span>
+            <input type='checkbox' class='checkbox-inline' id='hideRepeatCols'>
+        </div>
+    </div>
+</div>
+
+<div style='margin-top:10px;' id="rtModalBtn">
+    <button class="tweaks_writeback report_btn jqbuttonmed ui-button ui-corner-all ui-widget" style="font-size:12px;">
+        <i class="fas fa-pencil-alt fs10"></i> BtnLabel
+    </button>
+</div>
+
+<div class="form-group mb-0" id="rtModalInput">
+    <label class='font-weight-bold float-left mt-4'>LabelText</label>
+    <input type="text" class="swal2-input mt-0 mb-0" id="newID">
+</div>
+
 </template>

@@ -1,49 +1,6 @@
 ReportTweaks.fn = {};
-ReportTweaks.html = {};
 ReportTweaks.cookie = {};
 ReportTweaks.isAnyDate = RegExp('[0-9]{2,4}-[0-9]{2}-[0-9]{2,4}');
-
-ReportTweaks.html.copyBtn = `<a href="#" class="btn btn-secondary btn-sm mb-1" role="button" id="copyDataBtn"><i class="fas fa-clipboard"></i></a>`;
-
-ReportTweaks.html.checkboxes = `
-<div class="container p-0 mt-1" style="max-width:420px" id="checkboxGrouper">
-    <div class="row no-gutters">
-        <div class="col-md-5">
-            <span class="font-weight-bold">Hide Event Column: </span>
-            <input type='checkbox' class='checkbox-inline' id='hideEventCol'>
-        </div>
-        <div class="col-md-7">
-            <span class="font-weight-bold">Hide Repeating Form Columns: </span>
-            <input type='checkbox' class='checkbox-inline' id='hideRepeatCols'>
-        </div>
-    </div>
-</div>`;
-
-ReportTweaks.html.filters = `
-    <span class="dataTables_filter">
-        <label><input type="text" placeholder="Maximum" id="tableFilterMax" tabindex=3></label>
-    </span>
-    <span class="dataTables_filter">
-        <label><input type="text" placeholder="Minimum" id="tableFilterMin" tabindex=2></label>
-    </span>
-    <span class="dataTables_filter">
-        <select id="minmaxpivot">
-            <option value="" selected disabled hidden>Filter Range On...</option>
-        </select>
-    </span>`;
-
-ReportTweaks.html.wbBtn = `
-<div style='margin-top:10px;'>
-    <button class="tweaks_writeback report_btn jqbuttonmed ui-button ui-corner-all ui-widget" style="font-size:12px;">
-        <i class="fas fa-pencil-alt fs10"></i> BtnLabel
-    </button>
-</div>`;
-
-ReportTweaks.html.modalInput = `
-<div class="form-group mb-0">
-    <label class='font-weight-bold float-left mt-4'>LABEL</label>
-    <input type="text" class="swal2-input mt-0 mb-0" id="ID">
-</div>`;
 
 Date.prototype.addDays = function(days) {
     let date = new Date(this.valueOf());
@@ -56,17 +13,18 @@ Manipulate DOM to insert the Copy Button regardless
 of report format.
 */
 ReportTweaks.fn.insertCopyBtn = function() {
+    let html = ReportTweaks.html.find("#rtCopyDataBtn").html();
     if ($(".report_pagenum_div").length) { // Pagination
-        $(".report_pagenum_div").first().before(ReportTweaks.html.copyBtn);
+        $(".report_pagenum_div").first().before(html);
     } else { // One Page
-        $("#report_table_wrapper").prepend(ReportTweaks.html.copyBtn);
-        $("#copyDataBtn").css('float', 'left');
+        $("#report_table_wrapper").prepend(html);
+        $(".copyDataBtn").css('float', 'left');
     }
-    $("#copyDataBtn").popover({
+    $(".copyDataBtn").popover({
         content: "Copy data below to clipboard",
         trigger: "hover"
     });
-    $("#copyDataBtn").on("click", ReportTweaks.fn.copyData);
+    $(".copyDataBtn").on("click", ReportTweaks.fn.copyData);
 }
 
 /*
@@ -77,7 +35,7 @@ if they are not able to be used.
 ReportTweaks.fn.insertCheckboxes = function() {
 
     // Insert into the DOM
-    $("#report_div .d-print-none").eq(1).append(ReportTweaks.html.checkboxes);
+    $("#report_div .d-print-none").eq(1).append(ReportTweaks.html.find("#rtCheckboxes").html());
     if (!Number.isInteger(ReportTweaks.coreColumnMap['redcap_repeat_instrument'])) {
         $("#hideRepeatCols").prop('disabled', true).prop('checked', false).parent().hide();
     }
@@ -101,7 +59,7 @@ ReportTweaks.fn.insertFilters = function() {
     $(".dataTables-rc-searchfilter-parent .col-sm-6").first().remove();
     $(".dataTables-rc-searchfilter-parent .col-sm-6").removeClass('col-sm-6').addClass('col-12 mt-1');
     $("#report_table_filter input").css('margin-right', '3px');
-    $("#report_table_filter").prepend(ReportTweaks.html.filters);
+    $("#report_table_filter").prepend(ReportTweaks.html.find("#rtFilters").html());
     $.fn.dataTable.ext.search.push(ReportTweaks.fn.rangeSearch);
 }
 
@@ -111,7 +69,7 @@ are configured.
 */
 ReportTweaks.fn.insertWriteback = function() {
     $("#report_div .d-print-none").eq(1).append(
-        ReportTweaks.html.wbBtn.replace('BtnLabel',
+        ReportTweaks.html.find("#rtModalBtn").html().replace('BtnLabel',
             ReportTweaks.settings[getParameterByName('report_id')]['_wb'].modalBtn));
     $(".tweaks_writeback").on("click", ReportTweaks.fn.openModal);
 }
@@ -220,9 +178,9 @@ ReportTweaks.fn.openModal = function() {
     // Build out modal text if needed
     let html = settings.modalText;
     if (settings.writeType == 'ask') {
-        html += ReportTweaks.html.modalInput
-            .replace('LABEL', ReportTweaks.fn.toTitleCase(settings.field))
-            .replace('ID', settings.field) + '&nbsp;';
+        html += ReportTweaks.html.find("#rtModalInput").html()
+            .replace('LabelText', ReportTweaks.fn.toTitleCase(settings.field))
+            .replace('newID', settings.field) + '&nbsp;';
     }
 
     // Display modal and handle response from server
@@ -503,7 +461,7 @@ Gather and save current user settings to cookie
 */
 ReportTweaks.fn.saveCookie = function() {
     let localCookie = {};
-    $("#checkboxGrouper input").each((_, el) => { localCookie[$(el).attr('id')] = $(el).is(':checked') });
+    $("#rtCheckboxes input").each((_, el) => { localCookie[$(el).attr('id')] = $(el).is(':checked') });
     ReportTweaks.cookie[getParameterByName('report_id')] = localCookie;
     Cookies.set("RedcapReportTweaks", JSON.stringify(ReportTweaks.cookie), { sameSite: 'strict' });
 }
@@ -524,7 +482,7 @@ ReportTweaks.fn.moveTableHeadersToggle = function() {
     if (!$("#FixedTableHdrsEnable").hasClass('ReportTweaksAdjusted')) {
         // Multi page report or Single Page tweak
         if ($(".report_pagenum_div").length) {
-            $("#FixedTableHdrsEnable").insertAfter('#copyDataBtn').addClass('ReportTweaksAdjusted');
+            $("#FixedTableHdrsEnable").insertAfter('#rtCopyDataBtn').addClass('ReportTweaksAdjusted');
         } else {
             $("#FixedTableHdrsEnable").prependTo('#report_table_filter').addClass('ReportTweaksAdjusted');
         }
@@ -589,13 +547,15 @@ ReportTweaks.fn.waitForLoad = function() {
     $.each(cookie[report], (key, value) => { if (value) $(`#${key}:enabled`).click() });
 
     // Setup Cookie Saving
-    $("#checkboxGrouper input").on('click', ReportTweaks.fn.saveCookie);
+    $("#rtCheckboxes input").on('click', ReportTweaks.fn.saveCookie);
 }
 
 /*
 Attach CSS and start the EM load
 */
 $(document).ready(function() {
+    // Load the templates and call main load
+    ReportTweaks.html = $($("template").prop('content'));
     ReportTweaks.fn.waitForLoad();
 });
 
