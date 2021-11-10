@@ -340,8 +340,9 @@ ReportTweaks.fn.mergeRows = function() {
         remove.push(table.row(rowIdx - 1).node());
     });
 
-    // Review and trash rows that have been merged into others
+    // Review and trash rows that have been merged into others, update
     remove.forEach((row) => table.row(row).remove());
+    $("#report_div span").first().text(table.rows().count()); // count
     table.draw();
 
     // Loop over every column to find those with dates in them, 
