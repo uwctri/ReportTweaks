@@ -2,22 +2,24 @@
 
 <!-- Edit Report Page -->
 
-<div id="rtTitle"><i class='fas fa-tag'></i> Report Tweaks</div>
+<div id="rtTitle"><i class='fas fa-tag'></i> <?=$this->tt('module_name'); ?></div>
 
 <div id="rtDashboard">
     <div style="margin:0 0 4px 20px;text-indent:-18px;">
-        <input name="tweaks_includeEvent" type="checkbox"> Include <code>redcap_event_name</code> in the report.
+        <input name="tweaks_includeEvent" type="checkbox"> <?=$this->tt('dash_event'); ?>
     </div>
     <div style="margin:0 0 4px 20px;text-indent:-18px;">
-        <input name="tweaks_merge" type="checkbox"> Combine rows representing the same record.
+        <input name="tweaks_merge" type="checkbox"> <?=$this->tt('dash_combine'); ?>
     </div>
     <div style="margin:0 0 4px 20px;text-indent:-18px;">
-        <input name="tweaks_removeEmpty" type="checkbox"> Remove rows with no data (i.e. empty) other than <code>redcap_</code> variables and <code>record_id</code>.
+        <input name="tweaks_removeEmpty" type="checkbox"> <?=$this->tt('dash_empty'); ?>
     </div>
     <div style="margin:0 0 4px 20px;text-indent:-18px;">
-        <input name="tweaks_writeback" type="checkbox"> Add a button to write data back to the database. Useful for removing records from a report or flagging records as reviewed. <br/> <span id="openWriteBackModal"><i class="fas fa-cog ml-3" style="color:grey"></i>Configure</span>
+        <input name="tweaks_writeback" type="checkbox"> <?=$this->tt('dash_writeback'); ?> <br/> <span id="openWriteBackModal"><i class="fas fa-cog ml-3" style="color:grey"></i><?=$this->tt('dash_config'); ?></span>
     </div>
 </div>
+
+<p id="rtModalTitle">DB Writeback Config</p>
 
 <div class="container wbModal" id="rtModal">
     <div class="row">
@@ -104,6 +106,8 @@
 <!-- View Report Page -->
 
 <a href="#" id="rtCopyDataBtn" class="btn btn-secondary btn-sm mb-1" role="button"><i class="fas fa-clipboard"></i></a>
+
+<p id="rtPopover">Copy data below to clipboard</p>
 
 <div id="rtFilters">
     <span class="dataTables_filter">

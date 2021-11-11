@@ -43,7 +43,7 @@ Display the Write back config modal, load current settings & save settins on clo
 ReportTweaks.fn.openModal = function() {
 
     Swal.fire({
-        title: 'DB Writeback Config',
+        title: $(ReportTweaks.html.rtModalTitle).text(),
         html: ReportTweaks.html.rtModal,
         customClass: {
             container: 'writeBackModal'
