@@ -1,6 +1,5 @@
 ReportTweaks.fn = {};
 ReportTweaks.cookie = {};
-ReportTweaks.isAnyDate = RegExp('[0-9]{2,4}-[0-9]{2}-[0-9]{2,4}');
 
 /*
 Manipulate DOM to insert the Copy Button regardless
@@ -87,10 +86,11 @@ ReportTweaks.fn.packageData = function() {
         let writeValue = settings.writeStatic;
         let type = settings.writeType;
 
-        if (type == "today")
+        if (type == "today") {
             writeValue = today;
-        if (type == "ask")
+        } else if (type == "ask") {
             writeValue = $(`#${settings.field}`).val();
+        }
 
         if (settings.increment) {
             if (type == "today") {
@@ -191,8 +191,9 @@ ReportTweaks.fn.openModal = function() {
         cancelButtonColor: '#d33',
         confirmButtonText: 'Write to DB'
     }).then((result) => {
-        if (!result.value)
+        if (!result.value) {
             return;
+        }
         $.ajax({
             method: 'POST',
             url: ReportTweaks.router,
@@ -292,10 +293,12 @@ ReportTweaks.fn.mergeRows = function() {
 
     // check if we have a record id column, if so be sure its sorted
     let recordCol = $(`#report_table th:contains(${ReportTweaks.record_id})`);
-    if (!recordCol.length)
+    if (!recordCol.length) {
         return;
-    if ($(recordCol).index() != 0 && !$(recordCol).hasClass('sorting_asc'))
+    }
+    if ($(recordCol).index() != 0 && !$(recordCol).hasClass('sorting_asc')) {
         $(recordCol).click();
+    }
     recordCol = $(recordCol).index();
 
     // Setup for loop
@@ -318,14 +321,16 @@ ReportTweaks.fn.mergeRows = function() {
         let currData = $.map(row, (value, key) => typeof value == "string" ? value : value['display']);
         let prevData = $.map(table.row(rowIdx - 1).data(), (value, key) => typeof value == "string" ? value : value['display']);
         let newData = ReportTweaks.fn.mergeArray(currData, prevData);
-        if (!newData)
+        if (!newData) {
             return;
+        }
 
         // Populate the row with the merged data and remove
         // any bad styling. Skip spots where no new data exists
         $(this.node()).find("td").each(function(index, el) {
-            if (newData[index] == null)
+            if (newData[index] == null) {
                 return;
+            }
             $(el).removeClass('nodesig');
             if ($(el).html() != newData[index]) {
                 table.cell(rowIdx, index).data(newData[index]);
@@ -345,33 +350,30 @@ ReportTweaks.fn.mergeRows = function() {
     // we only walk down a col until we find a non-blank so this
     // doesn't take much time
     let buildCache = [];
+    let isAnyDate = RegExp('[0-9]{2,4}-[0-9]{2}-[0-9]{2,4}');
     table.columns().every(function(colIdx) {
-        if (Object.values(ReportTweaks.coreColumnMap).includes(colIdx))
+        // Skip redcap generated cols
+        if (Object.values(ReportTweaks.coreColumnMap).includes(colIdx)) {
             return;
+        }
         $.each(this.data(), function(i, el) {
             el = el.split(' ')[0];
-            if (el && ReportTweaks.isAnyDate.test(el))
+            if (el && isAnyDate.test(el))
                 buildCache.push(colIdx);
             if (el) return false;
         });
-    });
-
-    // Init the cache
-    // For the step below we need to init the sorting cache in Datatables
-    // otherwise we will need to x = x || {}; every row which is expensive-ish.
-    table.rows().every(function(rowIdx) {
-        $.fn.dataTable.settings[0].aoData[rowIdx]._aSortData = [];
     });
 
     // Rebuild the cache for sorting dates
     // Data Tables doesn't allow for chaning ordering/sorting functions after
     // init nor does it expose plugin tools to do so. We are forced to manually
     // rebuild the cache via un-documented means. We must do this after the draw.
-    buildCache.forEach(function(colIdx) {
-        table.rows().every(function(rowIdx) {
-            let data = this.data()[colIdx];
-            if (data instanceof Object)
-                data = this.data()[colIdx].display
+    table.rows().every(function(rowIdx) {
+        $.fn.dataTable.settings[0].aoData[rowIdx]._aSortData = [];
+        let row = this.data();
+        buildCache.forEach(function(colIdx) {
+            let data = row[colIdx];
+            data = data instanceof Object ? data.display : data;
             if (!data) {
                 $.fn.dataTable.settings[0].aoData[rowIdx]._aSortData[colIdx] = 0;
                 return;
@@ -391,11 +393,11 @@ then do so, otherwise return false.
 ReportTweaks.fn.mergeArray = function(arr1, arr2) {
     let target = [];
     $.each(arr1, function(index, arr1Value) {
-        if (Object.values(ReportTweaks.coreColumnMap).includes(index))
+        if (Object.values(ReportTweaks.coreColumnMap).includes(index)) {
             target[index] = null;
-        else if (arr2[index] == "" || arr1Value == "" || arr1Value == arr2[index])
+        } else if (arr2[index] == "" || arr1Value == "" || arr1Value == arr2[index]) {
             target[index] = arr1Value || arr2[index];
-        else {
+        } else {
             target = false;
             return true;
         }
@@ -446,10 +448,11 @@ Ideally this would be resolved via CSS and this func removed.
 */
 ReportTweaks.fn.updateTableWidth = function() {
     // Updates the width of the page Selector above the table OR the filter area when 1 page
-    if ($(".report_pagenum_div").length)
+    if ($(".report_pagenum_div").length) {
         $(".report_pagenum_div").css('width', $("#report_table").css('width'));
-    else
+    } else {
         $("#report_table_filter").css('width', Number($("#report_table").css('width').replace('px', '')) - 30 + 'px');
+    }
     ReportTweaks.fn.moveTableHeadersToggle();
 }
 
@@ -479,15 +482,16 @@ ReportTweaks.fn.moveTableHeadersToggle = function() {
     if (!$("#FixedTableHdrsEnable").hasClass('ReportTweaksAdjusted')) {
         // Multi page report or Single Page tweak
         if ($(".report_pagenum_div").length) {
-            $("#FixedTableHdrsEnable").insertAfter('#rtCopyDataBtn').addClass('ReportTweaksAdjusted');
+            $("#FixedTableHdrsEnable").insertAfter('.copyDataBtn').addClass('ReportTweaksAdjusted');
         } else {
             $("#FixedTableHdrsEnable").prependTo('#report_table_filter').addClass('ReportTweaksAdjusted');
         }
     }
 
     // Multi page report tweak for sizing
-    if ($(".report_pagenum_div").length)
+    if ($(".report_pagenum_div").length) {
         $("#FixedTableHdrsEnable").css('margin-left', Number($(".report_pagenum_div").css('width').replace('px', '')) - 170 + 'px');
+    }
 }
 
 /*
@@ -548,17 +552,16 @@ ReportTweaks.fn.waitForLoad = function() {
 }
 
 /*
-Attach CSS and start the EM load
-*/
+ Load the templates and our load func
+ */
 $(document).ready(function() {
-    // Load the templates and call main load
     ReportTweaks.html = $($("template").prop('content'));
     ReportTweaks.fn.waitForLoad();
 });
 
 /*
-Watch for state histry change (used on multi-page reports)
-You can't avoid polling due to page changing using history push state
+Watch for state history change (used on multi-page reports)
+We can't avoid polling due to page changing using history push state
 */
 let oldHref = document.location.href;
 window.onload = function() {

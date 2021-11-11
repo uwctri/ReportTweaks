@@ -16,13 +16,13 @@ class ReportTweaks extends AbstractExternalModule {
     public function redcap_every_page_top($project_id) {
         
         // Custom Config page
-        if (strpos(PAGE, 'manager/project.php') !== false && $project_id != NULL) {
+        if (strpos(PAGE, 'manager/project.php') !== false && $project_id) {
             $this->initGlobal();
             $this->includeJs('config.js');
         }
         
-        // Reports Page
-        elseif (PAGE == 'DataExport/index.php' && $project_id != NULL && $_GET['report_id']) {
+        // Reports Page (Edit or View Report, Not the all-reports page or stats/charts)
+        elseif (PAGE == 'DataExport/index.php' && $project_id && $_GET['report_id'] && !$_GET['stats_charts']) {
             $this->initGlobal();
             $this->includeCSS();
             include('templates.php');
