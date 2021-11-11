@@ -1,6 +1,9 @@
 {
     "name": "Report Tweaks",
+    "tt_name": "module_name",
     "description": "Configurable Display Enhancments for REDCap Reports",
+    "tt_description": "module_desc",
+    "documentation": "README.md",
     "namespace": "UWMadison\\ReportTweaks",
     "authors": [{
         "name": "Adam Nunez",
@@ -13,11 +16,13 @@
     "project-settings": [{
             "key": "info",
             "name": "This module is configured via the edit report screen. Individual user configuration is saved via a cookie on the user's browser.<br><br><a>Click here to view all saved configuration.</a>",
+            "tt_name": "module_info",
             "type": "descriptive"
         },
         {
             "key": "json",
             "name": "<b>Json Object</b>",
+            "tt_name": "module_json",
             "type": "textarea"
         }
     ],

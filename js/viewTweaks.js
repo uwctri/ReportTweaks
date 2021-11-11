@@ -6,18 +6,18 @@ Manipulate DOM to insert the Copy Button regardless
 of report format.
 */
 ReportTweaks.fn.insertCopyBtn = function() {
-    let html = ReportTweaks.html.find("#rtCopyDataBtn").html();
+    let html = ReportTweaks.html.rtCopyDataBtn;
     if ($(".report_pagenum_div").length) { // Pagination
         $(".report_pagenum_div").first().before(html);
     } else { // One Page
         $("#report_table_wrapper").prepend(html);
-        $(".copyDataBtn").css('float', 'left');
+        $("#rtCopyDataBtn").css('float', 'left');
     }
-    $(".copyDataBtn").popover({
+    $("#rtCopyDataBtn").popover({
         content: "Copy data below to clipboard",
         trigger: "hover"
     });
-    $(".copyDataBtn").on("click", ReportTweaks.fn.copyData);
+    $("#rtCopyDataBtn").on("click", ReportTweaks.fn.copyData);
 }
 
 /*
@@ -28,7 +28,7 @@ if they are not able to be used.
 ReportTweaks.fn.insertCheckboxes = function() {
 
     // Insert into the DOM
-    $("#report_div .d-print-none").eq(1).append(ReportTweaks.html.find("#rtCheckboxes").html());
+    $("#report_div .d-print-none").eq(1).append(ReportTweaks.html.rtCheckboxes);
     if (!Number.isInteger(ReportTweaks.coreColumnMap['redcap_repeat_instrument'])) {
         $("#hideRepeatCols").prop('disabled', true).prop('checked', false).parent().hide();
     }
@@ -52,7 +52,7 @@ ReportTweaks.fn.insertFilters = function() {
     $(".dataTables-rc-searchfilter-parent .col-sm-6").first().remove();
     $(".dataTables-rc-searchfilter-parent .col-sm-6").removeClass('col-sm-6').addClass('col-12 mt-1');
     $("#report_table_filter input").css('margin-right', '3px');
-    $("#report_table_filter").prepend(ReportTweaks.html.find("#rtFilters").html());
+    $("#report_table_filter").prepend(ReportTweaks.html.rtFilters);
     $.fn.dataTable.ext.search.push(ReportTweaks.fn.rangeSearch);
 }
 
@@ -62,7 +62,7 @@ are configured.
 */
 ReportTweaks.fn.insertWriteback = function() {
     $("#report_div .d-print-none").eq(1).append(
-        ReportTweaks.html.find("#rtModalBtn").html().replace('BtnLabel',
+        ReportTweaks.html.rtModalBtn.replace('BtnLabel',
             ReportTweaks.settings[getParameterByName('report_id')]['_wb'].modalBtn));
     $(".tweaks_writeback").on("click", ReportTweaks.fn.openModal);
 }
@@ -174,7 +174,7 @@ ReportTweaks.fn.openModal = function() {
     // Build out modal text if needed
     let html = settings.modalText;
     if (settings.writeType == 'ask') {
-        html += ReportTweaks.html.find("#rtModalInput").html()
+        html += ReportTweaks.html.rtModalInput
             .replace('LabelText', ReportTweaks.fn.toTitleCase(settings.field))
             .replace('newID', settings.field) + '&nbsp;';
     }
@@ -482,7 +482,7 @@ ReportTweaks.fn.moveTableHeadersToggle = function() {
     if (!$("#FixedTableHdrsEnable").hasClass('ReportTweaksAdjusted')) {
         // Multi page report or Single Page tweak
         if ($(".report_pagenum_div").length) {
-            $("#FixedTableHdrsEnable").insertAfter('.copyDataBtn').addClass('ReportTweaksAdjusted');
+            $("#FixedTableHdrsEnable").insertAfter('#rtCopyDataBtn').addClass('ReportTweaksAdjusted');
         } else {
             $("#FixedTableHdrsEnable").prependTo('#report_table_filter').addClass('ReportTweaksAdjusted');
         }
@@ -555,7 +555,9 @@ ReportTweaks.fn.waitForLoad = function() {
  Load the templates and our load func
  */
 $(document).ready(function() {
-    ReportTweaks.html = $($("template").prop('content'));
+    ReportTweaks.html = {};
+    $.each($("template").prop('content').children, (_, el) =>
+        ReportTweaks.html[$(el).prop('id')] = $(el).prop('outerHTML'));
     ReportTweaks.fn.waitForLoad();
 });
 

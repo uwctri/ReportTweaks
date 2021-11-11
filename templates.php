@@ -103,7 +103,7 @@
 
 <!-- View Report Page -->
 
-<div id="rtCopyDataBtn"><a href="#" class="btn btn-secondary btn-sm mb-1 copyDataBtn" role="button"><i class="fas fa-clipboard"></i></a></div>
+<a href="#" id="rtCopyDataBtn" class="btn btn-secondary btn-sm mb-1" role="button"><i class="fas fa-clipboard"></i></a>
 
 <div id="rtFilters">
     <span class="dataTables_filter">
@@ -119,7 +119,7 @@
     </span>
 </div>
 
-<div class="container p-0 mt-1" style="max-width:420px" id="rtCheckboxes">
+<div id="rtCheckboxes" class="container p-0 mt-1" style="max-width:420px">
     <div class="row no-gutters">
         <div class="col-md-5">
             <span class="font-weight-bold">Hide Event Column: </span>

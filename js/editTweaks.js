@@ -44,7 +44,7 @@ ReportTweaks.fn.openModal = function() {
 
     Swal.fire({
         title: 'DB Writeback Config',
-        html: ReportTweaks.html.find('#rtModal').html(),
+        html: ReportTweaks.html.rtModal,
         customClass: {
             container: 'writeBackModal'
         }
@@ -93,16 +93,18 @@ ReportTweaks.fn.openModal = function() {
 $(document).ready(function() {
 
     // Load the templates
-    ReportTweaks.html = $($("template").prop('content'));
+    ReportTweaks.html = {};
+    $.each($("template").prop('content').children, (_, el) =>
+        ReportTweaks.html[$(el).prop('id')] = $(el).prop('outerHTML'));
 
     // Insert a new box area for our custom settings
     let reportOpt = $("td:contains(Additional report options)").parent();
     reportOpt.next().after(reportOpt.prev().nextAll(':lt(2)').addBack().clone().addClass('reportTweaks'));
 
     // Style the box with title, populate with template
-    $(".reportTweaks div").first().html(ReportTweaks.html.find('#rtTitle').html());
+    $(".reportTweaks div").first().html(ReportTweaks.html.rtTitle);
     $(".reportTweaks").last().find('div').remove();
-    $(".reportTweaks td").last().append(ReportTweaks.html.find('#rtDashboard').html());
+    $(".reportTweaks td").last().append(ReportTweaks.html.rtDashboard);
 
     // Load settings and prep them clicks
     ReportTweaks.fn.loadSettings();
