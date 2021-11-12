@@ -104,7 +104,7 @@ class ReportTweaks extends AbstractExternalModule {
     */
     private function initGlobal() {
         $this->initializeJavascriptModuleObject();
-        $this->tt_transferToJavascriptModuleObject();
+        //$this->tt_transferToJavascriptModuleObject();
         $json = $this->getProjectSetting('json');
         $data = json_encode([
             "router" => $this->getUrl('router.php'),
@@ -140,7 +140,7 @@ class ReportTweaks extends AbstractExternalModule {
     HTML to pass down module prefix for the config page.
     */
     private function includePrefix() {
-        echo "<script>var {$this->module_global} = {'modulePrefix': '{$this->PREFIX}'};</script>";
+        echo "<script>var {$this->module_global} = {'modulePrefix': '{$this->getPrefix()}'};</script>";
     }
     
     /*

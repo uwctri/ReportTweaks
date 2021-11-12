@@ -43,7 +43,7 @@ Display the Write back config modal, load current settings & save settins on clo
 ReportTweaks.fn.openModal = function() {
 
     Swal.fire({
-        title: "DB Writeback Config",
+        title: ReportTweaks.em.tt('modal_edit_1'),
         html: ReportTweaks.html.rtModal,
         customClass: {
             container: 'writeBackModal'
@@ -98,7 +98,7 @@ $(document).ready(function() {
         ReportTweaks.html[$(el).prop('id')] = $(el).prop('outerHTML'));
 
     // Insert a new box area for our custom settings
-    let reportOpt = $("td:contains(Additional report options)").parent();
+    let reportOpt = $("input[name=output_survey_fields]").closest('tr').prev();
     reportOpt.next().after(reportOpt.prev().nextAll(':lt(2)').addBack().clone().addClass('reportTweaks'));
 
     // Style the box with title, populate with template

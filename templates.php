@@ -23,13 +23,13 @@
     <div class="row">
         <label class="col-sm-4 control-label" for="modalBtn">Button Text</label>  
         <div class="col-sm-8">
-            <input id="modalBtn" name="modalBtn" type="text" placeholder="Mark as Complete" class="form-control input-md">
+            <input id="modalBtn" name="modalBtn" type="text" placeholder="<?=$this->tt('modal_edit_2'); ?>" class="form-control input-md">
         </div>
     </div>
     <div class="row">
         <label class="col-sm-4 control-label" for="modalText">Popup Message</label>
         <div class="col-sm-8">                     
-            <textarea class="form-control" id="modalText" name="modalText" placeholder="Explination here. You can use HTML tags!"></textarea>
+            <textarea class="form-control" id="modalText" name="modalText" placeholder="<?=$this->tt('modal_edit_3'); ?>"></textarea>
         </div>
     </div>
     <div class="row">
@@ -39,45 +39,45 @@
         </div>
     </div>
     <div class="row">
-        <label class="col-sm-4 control-label" for="event">Event</label>
+        <label class="col-sm-4 control-label" for="event"><?=$this->tt('modal_edit_4'); ?></label>
         <div class="col-sm-8">
             <select id="event" name="event" class="form-control">
-                <option value="">NA/Pull From Report</option>
+                <option value=""><?=$this->tt('modal_edit_5'); ?></option>
             </select>
         </div>
     </div>
     <div class="row">
-        <label class="col-sm-4 control-label" for="field">Field</label>
+        <label class="col-sm-4 control-label" for="field"><?=$this->tt('modal_edit_6'); ?></label>
         <div class="col-sm-8">
             <select id="field" name="field" class="form-control">
             </select>
         </div>
     </div>
     <div class="row">
-        <label class="col-md-4 control-label" for="writeType">Write Value</label>
+        <label class="col-md-4 control-label" for="writeType"><?=$this->tt('modal_edit_7'); ?></label>
         <div class="col-md-8 text-left">
             <div class="radio">
                 <label for="writeType-ask">
                     <input type="radio" name="writeType" id="writeType-ask" value="ask" checked="checked">
-                    Ask User for Write Value
+                    <?=$this->tt('modal_edit_8'); ?>
                 </label>
             </div>
             <div class="radio">
                 <label for="writeType-static">
                     <input type="radio" name="writeType" id="writeType-static" value="static">
-                    Static
+                    <?=$this->tt('modal_edit_9'); ?>
                 </label>
             </div>
             <div class="radio">
                 <label for="writeType-today">
                     <input type="radio" name="writeType" id="writeType-today" value="today">
-                    Today's Date
+                    <?=$this->tt('modal_edit_10'); ?>
                 </label>
             </div>
         </div>
     </div>
     <div class="row" id="writeStaticRow" style="display:none">
-        <label class="col-sm-4 control-label" for="writeStatic">Write Value</label>  
+        <label class="col-sm-4 control-label" for="writeStatic"><?=$this->tt('modal_edit_7'); ?></label>  
         <div class="col-sm-8">
             <input id="writeStatic" name="writeStatic" type="text" placeholder="" class="form-control input-md">
         </div>
@@ -88,13 +88,13 @@
             <div class="checkbox">
                 <label for="overwrites">
                     <input type="checkbox" name="overwrites" id="overwrites" value="1">
-                    Allow Data Overwrites
+                    <?=$this->tt('modal_edit_11'); ?>
                 </label>
             </div>
             <div class="checkbox">
                 <label for="increment">
                     <input type="checkbox" name="increment" id="increment" value="1">
-                    Increment Write Value per Row
+                    <?=$this->tt('modal_edit_12'); ?>
                 </label>
             </div>
         </div>
@@ -114,7 +114,7 @@
     </span>
     <span class="dataTables_filter">
         <select id="minmaxpivot">
-            <option value="" selected disabled hidden>Filter Range On...</option>
+            <option value="" selected disabled hidden><?=$this->tt('filter'); ?></option>
         </select>
     </span>
 </div>
@@ -122,11 +122,11 @@
 <div id="rtCheckboxes" class="container p-0 mt-1" style="max-width:420px">
     <div class="row no-gutters">
         <div class="col-md-5">
-            <span class="font-weight-bold">Hide Event Column: </span>
+            <span class="font-weight-bold"><?=$this->tt('hide_event'); ?>: </span>
             <input type='checkbox' class='checkbox-inline' id='hideEventCol'>
         </div>
         <div class="col-md-7">
-            <span class="font-weight-bold">Hide Repeating Form Columns: </span>
+            <span class="font-weight-bold"><?=$this->tt('hide_repeat'); ?>: </span>
             <input type='checkbox' class='checkbox-inline' id='hideRepeatCols'>
         </div>
     </div>

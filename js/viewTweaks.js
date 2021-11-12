@@ -1,7 +1,3 @@
-(function() {
-    ReportTweaks.example = "it worked";
-})();
-
 ReportTweaks.fn = {};
 ReportTweaks.cookie = {};
 
