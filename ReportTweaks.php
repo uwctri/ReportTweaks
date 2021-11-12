@@ -23,7 +23,7 @@ class ReportTweaks extends AbstractExternalModule {
         
         // Reports Page (Edit or View Report, Not the all-reports page or stats/charts)
         elseif (PAGE == 'DataExport/index.php' && $project_id && $_GET['report_id'] && !$_GET['stats_charts']) {
-            $this->initGlobal();
+            $this->loadSettings($_GET['report_id']);
             $this->includeCSS();
             include('templates.php');
             if ( $_GET['addedit'] ) {
@@ -44,7 +44,7 @@ class ReportTweaks extends AbstractExternalModule {
         $json = $this->getProjectSetting('json');
         $json = empty($json) ? array() : (array)json_decode($json);
         $json[$_POST['report']] = json_decode($_POST['settings']);
-        ExternalModules::setProjectSetting($this->PREFIX, $_GET['pid'], 'json', json_encode($json));
+        ExternalModules::setProjectSetting($this->getPrefix(), $_GET['pid'], 'json', json_encode($json));
     }
     
     /*
@@ -99,18 +99,19 @@ class ReportTweaks extends AbstractExternalModule {
     }
     
     /*
-    Inits the ReportTweaks global and loads all settings to it
-    including the Redcap JS object
+    Inits the ReportTweaks global and loads the settings for
+    a report ID. Also packs the Redcap JS object
     */
-    private function initGlobal() {
+    private function loadSettings( $report ) {
         $this->initializeJavascriptModuleObject();
         $this->tt_transferToJavascriptModuleObject(ExternalModules::getLanguageKeys($this->getPrefix(),true));
-        $json = $this->getProjectSetting('json');
+        $json = ((array)json_decode( $this->getProjectSetting('json') ))[$report];
+        $json = empty($json) ? $this->defaultSettings : $json;
         $data = json_encode([
+            "csrf" => $this->getCSRFToken(),
             "router" => $this->getUrl('router.php'),
             "record_id" => REDCap::getRecordIdField(),
-            "defaultSettings" => $this->defaultSettings,
-            "settings" => empty($json) ? array() : (array)json_decode($json),
+            "settings" => $json,
         ]);
         echo "<script>var {$this->module_global} = {$data};</script>";
         echo "<script> {$this->module_global}.em = {$this->getJavascriptModuleObjectName()}</script>";

@@ -5,9 +5,8 @@ ReportTweaks.modalSettings = {};
 Load existing settings and populate the choices onto the page
 */
 ReportTweaks.fn.loadSettings = function() {
-    let settings = ReportTweaks.settings[ReportTweaks.em.getUrlParameter('report_id')] || ReportTweaks.defaultSettings;
-    $.each(settings, (key, val) => $(`input[name=tweaks_${key}]`).prop('checked', val));
-    ReportTweaks.modalSettings = settings['_wb'] || ReportTweaks.modalSettings;
+    $.each(ReportTweaks.settings, (key, val) => $(`input[name=tweaks_${key}]`).prop('checked', val));
+    ReportTweaks.modalSettings = ReportTweaks.settings['_wb'] || ReportTweaks.modalSettings;
 }
 
 /*
@@ -30,7 +29,8 @@ ReportTweaks.fn.saveSettings = function() {
         data: {
             route: 'saveConfig',
             report: ReportTweaks.em.getUrlParameter('report_id'),
-            settings: JSON.stringify(settings)
+            settings: JSON.stringify(settings),
+            redcap_csrf_token: ReportTweaks.csrf
         },
         error: (jqXHR, textStatus, errorThrown) => console.log(`${jqXHR}\n${textStatus}\n${errorThrown}`),
         success: () => console.log("Report Tweaks Settings Saved")
@@ -98,7 +98,7 @@ $(document).ready(function() {
         ReportTweaks.html[$(el).prop('id')] = $(el).prop('outerHTML'));
 
     // Insert a new box area for our custom settings
-    let reportOpt = $("input[name=output_survey_fields]").closest('tr').prev();
+    let reportOpt = $("input[name=filter_type]").closest('tr').prevAll().eq(2);
     reportOpt.next().after(reportOpt.prev().nextAll(':lt(2)').addBack().clone().addClass('reportTweaks'));
 
     // Style the box with title, populate with template

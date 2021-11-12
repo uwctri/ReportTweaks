@@ -63,7 +63,7 @@ are configured.
 ReportTweaks.fn.insertWriteback = function() {
     $("#report_div .d-print-none").eq(1).append(
         ReportTweaks.html.rtModalBtn.replace('BtnLabel',
-            ReportTweaks.settings[ReportTweaks.em.getUrlParameter('report_id')]['_wb'].modalBtn));
+            ReportTweaks.settings['_wb'].modalBtn));
     $(".tweaks_writeback").on("click", ReportTweaks.fn.openModal);
 }
 
@@ -75,7 +75,7 @@ Also handles write value calculation, if any.
 ReportTweaks.fn.packageData = function() {
     let writeArray = [];
     let table = $("#report_table").DataTable();
-    let settings = ReportTweaks.settings[ReportTweaks.em.getUrlParameter('report_id')]['_wb'];
+    let settings = ReportTweaks.settings['_wb'];
     let counter = 0;
     let counterDay = new Date(today);
 
@@ -130,7 +130,7 @@ Checks report, configuration, and if valid then generates/displays
 the write back modal to user. 
 */
 ReportTweaks.fn.openModal = function() {
-    let settings = ReportTweaks.settings[ReportTweaks.em.getUrlParameter('report_id')]['_wb'];
+    let settings = ReportTweaks.settings['_wb'];
     let defaults = { icon: 'info', iconHtml: "<i class='fas fa-database'></i>" }
 
     // No records exist on the report
@@ -200,14 +200,15 @@ ReportTweaks.fn.openModal = function() {
                 route: 'reportWrite',
                 field: settings.field,
                 overwrite: !!settings.overwrites, // encoded as "true" or "false" string
-                writeArray: JSON.stringify(ReportTweaks.fn.packageData())
+                writeArray: JSON.stringify(ReportTweaks.fn.packageData()),
+                redcap_csrf_token: ReportTweaks.csrf
             },
             error: (jqXHR, textStatus, errorThrown) => {
                 console.log(`${jqXHR}\n${textStatus}\n${errorThrown}`);
                 Swal.fire({
                     icon: 'error',
                     title: ReportTweaks.em.tt("modal_view_11"),
-                    text: ReportTweaks.em.tt("modal_view_12")
+                    text: ReportTweaks.em.tt("modal_view_12"),
                 });
             },
             success: (data) => {
@@ -518,20 +519,19 @@ ReportTweaks.fn.waitForLoad = function() {
     ReportTweaks.fn.insertFilters();
 
     // Load Report Config
-    let settings = ReportTweaks.settings[ReportTweaks.em.getUrlParameter('report_id')] || ReportTweaks.defaultSettings;
-    if (settings.merge) {
+    if (ReportTweaks.settings.merge) {
         ReportTweaks.fn.mergeRows();
     }
-    if (settings.removeEmpty) {
+    if (ReportTweaks.settings.removeEmpty) {
         ReportTweaks.fn.removeEmptyRows();
     }
-    if (!settings.includeEvent) {
+    if (!ReportTweaks.settings.includeEvent) {
         ReportTweaks.fn.toggleEventCol(false);
         $("#hideEventCol").prop('disabled', true).prop('checked', false).parent().hide();
     }
 
     // Load Write Back Button config 
-    if (settings.writeback) {
+    if (ReportTweaks.settings.writeback) {
         ReportTweaks.fn.insertWriteback();
     }
 
