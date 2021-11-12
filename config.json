@@ -5,6 +5,7 @@
     "tt_description": "module_desc",
     "documentation": "README.md",
     "namespace": "UWMadison\\ReportTweaks",
+    "framework-version": 8,
     "authors": [{
         "name": "Adam Nunez",
         "email": "Adam.Nunez@ctri.wisc.edu",
@@ -27,6 +28,6 @@
         }
     ],
     "compatibility": {
-        "redcap-version-min": "11.0.0"
+        "redcap-version-min": "11.1.1"
     }
 }

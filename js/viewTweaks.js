@@ -14,7 +14,7 @@ ReportTweaks.fn.insertCopyBtn = function() {
         $("#rtCopyDataBtn").css('float', 'left');
     }
     $("#rtCopyDataBtn").popover({
-        content: $(ReportTweaks.html.rtPopover).text(),
+        content: "Copy data below to clipboard",
         trigger: "hover"
     });
     $("#rtCopyDataBtn").on("click", ReportTweaks.fn.copyData);

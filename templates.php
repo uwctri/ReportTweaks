@@ -19,8 +19,6 @@
     </div>
 </div>
 
-<p id="rtModalTitle">DB Writeback Config</p>
-
 <div class="container wbModal" id="rtModal">
     <div class="row">
         <label class="col-sm-4 control-label" for="modalBtn">Button Text</label>  
@@ -106,8 +104,6 @@
 <!-- View Report Page -->
 
 <a href="#" id="rtCopyDataBtn" class="btn btn-secondary btn-sm mb-1" role="button"><i class="fas fa-clipboard"></i></a>
-
-<p id="rtPopover">Copy data below to clipboard</p>
 
 <div id="rtFilters">
     <span class="dataTables_filter">

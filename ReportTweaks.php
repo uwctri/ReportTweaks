@@ -103,6 +103,8 @@ class ReportTweaks extends AbstractExternalModule {
     Config page doesn't use most of this, but it takes no time to load.
     */
     private function initGlobal() {
+        $this->initializeJavascriptModuleObject();
+        $this->framework->tt_transferToJavascriptModuleObject();
         $json = $this->getProjectSetting('json');
         $data = json_encode([
             "modulePrefix" => $this->PREFIX,
@@ -112,6 +114,7 @@ class ReportTweaks extends AbstractExternalModule {
             "settings" => empty($json) ? array() : (array)json_decode($json),
         ]);
         echo "<script>var {$this->module_global} = {$data};</script>";
+        echo "<script>var em = {$this->framework->getJavascriptModuleObjectName()}</script>";
     }
     
     /*
