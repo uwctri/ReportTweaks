@@ -104,7 +104,7 @@ class ReportTweaks extends AbstractExternalModule {
     */
     private function initGlobal() {
         $this->initializeJavascriptModuleObject();
-        //$this->tt_transferToJavascriptModuleObject();
+        $this->tt_transferToJavascriptModuleObject(ExternalModules::getLanguageKeys($this->getPrefix(),true));
         $json = $this->getProjectSetting('json');
         $data = json_encode([
             "router" => $this->getUrl('router.php'),

@@ -137,8 +137,8 @@ ReportTweaks.fn.openModal = function() {
     if (!$.fn.DataTable.isDataTable('#report_table') ||
         !$("#report_table").DataTable().rows().count()) {
         Swal.fire({...defaults,
-            title: "No Records",
-            html: "Nothin' to do boss",
+            title: ReportTweaks.em.tt("modal_view_1"),
+            html: ReportTweaks.em.tt("modal_view_2"),
         });
         return;
     }
@@ -146,8 +146,8 @@ ReportTweaks.fn.openModal = function() {
     // Record ID is missing from the report
     if (!isNumeric(ReportTweaks.coreColumnMap[ReportTweaks.record_id])) {
         Swal.fire({...defaults,
-            title: "No Record ID",
-            html: `You must include ${ReportTweaks.record_id} on your report to write back to the database.`,
+            title: ReportTweaks.em.tt("modal_view_3"),
+            html: ReportTweaks.em.tt("modal_view_4").replace('{0}', ReportTweaks.record_id),
         });
         return;
     }
@@ -155,8 +155,8 @@ ReportTweaks.fn.openModal = function() {
     // Bad configuration
     if (!settings.field) {
         Swal.fire({...defaults,
-            title: "No Write Field Defined",
-            html: "Please review the writeback configuration and define a field that should be written to.",
+            title: ReportTweaks.em.tt("modal_view_5"),
+            html: ReportTweaks.em.tt("modal_view_6"),
         });
         return;
     }
@@ -164,9 +164,8 @@ ReportTweaks.fn.openModal = function() {
     // Write back has occured once already
     if (ReportTweaks.writeDone) {
         Swal.fire({...defaults,
-            title: "Already Written",
-            html: "You've already written once to the database. \
-                   Please refresh the page before writing again.",
+            title: ReportTweaks.em.tt("modal_view_7"),
+            html: ReportTweaks.em.tt("modal_view_8"),
         });
         return;
     }
@@ -182,14 +181,14 @@ ReportTweaks.fn.openModal = function() {
     // Display modal and handle response from server
     Swal.fire({
         icon: 'question',
-        title: 'Are you sure?',
+        title: ReportTweaks.em.tt("modal_view_9"),
         html: html,
         footer: settings.footer,
         showCloseButton: true,
         showCancelButton: true,
         confirmButtonColor: '#28a745',
         cancelButtonColor: '#d33',
-        confirmButtonText: 'Write to DB'
+        confirmButtonText: ReportTweaks.em.tt("modal_view_10")
     }).then((result) => {
         if (!result.value) {
             return;
@@ -207,9 +206,8 @@ ReportTweaks.fn.openModal = function() {
                 console.log(`${jqXHR}\n${textStatus}\n${errorThrown}`);
                 Swal.fire({
                     icon: 'error',
-                    title: 'Oops...',
-                    text: "There was an issue writing back to the database." +
-                        "If possible, leave this window open and contact a RedCap Administrator"
+                    title: ReportTweaks.em.tt("modal_view_11"),
+                    text: ReportTweaks.em.tt("modal_view_12")
                 });
             },
             success: (data) => {
@@ -222,15 +220,14 @@ ReportTweaks.fn.openModal = function() {
                 if (data.warnings.length || data.errors.length) {
                     Swal.fire({
                         icon: 'warning',
-                        title: 'Possible Issue',
-                        text: "There was an issue writing back to the database." +
-                            "If possible, leave this window open and contact a RedCap Administrator"
+                        title: ReportTweaks.em.tt("modal_view_13"),
+                        text: ReportTweaks.em.tt("modal_view_14")
                     });
                 } else {
                     Swal.fire({
                         icon: 'success',
-                        title: 'Write Back Complete',
-                        text: `Data was successfully written to ${Object.keys(data.ids).length} records`,
+                        title: ReportTweaks.em.tt("modal_view_15"),
+                        text: ReportTweaks.em.tt("modal_view_16").replace('{0}', Object.keys(data.ids).length),
                     });
                 }
             }
