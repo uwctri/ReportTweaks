@@ -2,7 +2,7 @@
 
 namespace UWMadison\ReportTweaks;
 use ExternalModules\AbstractExternalModule;
-use ExternalModules\ExternalModules;
+use ExternalModules\ExternalModules; // Todo - remove once tt_transferToJavascriptModuleObject issue is resolved
 use REDCap;
 
 class ReportTweaks extends AbstractExternalModule {
@@ -43,8 +43,16 @@ class ReportTweaks extends AbstractExternalModule {
     public function saveReportConfig() {
         $json = $this->getProjectSetting('json');
         $json = empty($json) ? array() : (array)json_decode($json);
+
+        // Escape 3 feilds that are html enabled 
+        if ( !empty($json['_wb']) ) {
+            foreach( ['footer','modalBtn','modalText'] as $html ) {
+                $json['_wb'][$html] = REDCap::escapeHtml($json['_wb'][$html]);
+            }
+        }
+
         $json[$_POST['report']] = json_decode($_POST['settings']);
-        ExternalModules::setProjectSetting($this->getPrefix(), $_GET['pid'], 'json', json_encode($json));
+        $this->setProjectSetting('json', json_encode($json));
     }
     
     /*
