@@ -5,7 +5,7 @@ ReportTweaks.modalSettings = {};
 Load existing settings and populate the choices onto the page
 */
 ReportTweaks.fn.loadSettings = function() {
-    let settings = ReportTweaks.settings[getParameterByName('report_id')] || ReportTweaks.defaultSettings;
+    let settings = ReportTweaks.settings[ReportTweaks.em.getUrlParameter('report_id')] || ReportTweaks.defaultSettings;
     $.each(settings, (key, val) => $(`input[name=tweaks_${key}]`).prop('checked', val));
     ReportTweaks.modalSettings = settings['_wb'] || ReportTweaks.modalSettings;
 }
@@ -29,7 +29,7 @@ ReportTweaks.fn.saveSettings = function() {
         url: ReportTweaks.router,
         data: {
             route: 'saveConfig',
-            report: getParameterByName('report_id'),
+            report: ReportTweaks.em.getUrlParameter('report_id'),
             settings: JSON.stringify(settings)
         },
         error: (jqXHR, textStatus, errorThrown) => console.log(`${jqXHR}\n${textStatus}\n${errorThrown}`),

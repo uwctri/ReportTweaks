@@ -17,7 +17,7 @@ class ReportTweaks extends AbstractExternalModule {
         
         // Custom Config page
         if (strpos(PAGE, 'manager/project.php') !== false && $project_id) {
-            $this->initGlobal();
+            $this->includePrefix();
             $this->includeJs('config.js');
         }
         
@@ -99,22 +99,21 @@ class ReportTweaks extends AbstractExternalModule {
     }
     
     /*
-    Inits the ReportTweaks global and loads all settings to it. 
-    Config page doesn't use most of this, but it takes no time to load.
+    Inits the ReportTweaks global and loads all settings to it
+    including the Redcap JS object
     */
     private function initGlobal() {
         $this->initializeJavascriptModuleObject();
-        $this->framework->tt_transferToJavascriptModuleObject();
+        $this->tt_transferToJavascriptModuleObject();
         $json = $this->getProjectSetting('json');
         $data = json_encode([
-            "modulePrefix" => $this->PREFIX,
             "router" => $this->getUrl('router.php'),
             "record_id" => REDCap::getRecordIdField(),
             "defaultSettings" => $this->defaultSettings,
             "settings" => empty($json) ? array() : (array)json_decode($json),
         ]);
         echo "<script>var {$this->module_global} = {$data};</script>";
-        echo "<script>var em = {$this->framework->getJavascriptModuleObjectName()}</script>";
+        echo "<script> {$this->module_global}.em = {$this->getJavascriptModuleObjectName()}</script>";
     }
     
     /*
@@ -136,9 +135,16 @@ class ReportTweaks extends AbstractExternalModule {
     private function makeInstrumentMap() {
         return array_flip(REDCap::getInstrumentNames());
     }
+
+    /*
+    HTML to pass down module prefix for the config page.
+    */
+    private function includePrefix() {
+        echo "<script>var {$this->module_global} = {'modulePrefix': '{$this->PREFIX}'};</script>";
+    }
     
     /*
-    HTML to include the cookie.js CDN 
+    HTML to include the cookie.js library 
     */
     private function includeCookies() {
         echo "<script type='text/javascript' src={$this->getURL('js/cookie.min.js')}></script>";

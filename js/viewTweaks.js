@@ -1,3 +1,7 @@
+(function() {
+    ReportTweaks.example = "it worked";
+})();
+
 ReportTweaks.fn = {};
 ReportTweaks.cookie = {};
 
@@ -63,7 +67,7 @@ are configured.
 ReportTweaks.fn.insertWriteback = function() {
     $("#report_div .d-print-none").eq(1).append(
         ReportTweaks.html.rtModalBtn.replace('BtnLabel',
-            ReportTweaks.settings[getParameterByName('report_id')]['_wb'].modalBtn));
+            ReportTweaks.settings[ReportTweaks.em.getUrlParameter('report_id')]['_wb'].modalBtn));
     $(".tweaks_writeback").on("click", ReportTweaks.fn.openModal);
 }
 
@@ -75,7 +79,7 @@ Also handles write value calculation, if any.
 ReportTweaks.fn.packageData = function() {
     let writeArray = [];
     let table = $("#report_table").DataTable();
-    let settings = ReportTweaks.settings[getParameterByName('report_id')]['_wb'];
+    let settings = ReportTweaks.settings[ReportTweaks.em.getUrlParameter('report_id')]['_wb'];
     let counter = 0;
     let counterDay = new Date(today);
 
@@ -130,7 +134,7 @@ Checks report, configuration, and if valid then generates/displays
 the write back modal to user. 
 */
 ReportTweaks.fn.openModal = function() {
-    let settings = ReportTweaks.settings[getParameterByName('report_id')]['_wb'];
+    let settings = ReportTweaks.settings[ReportTweaks.em.getUrlParameter('report_id')]['_wb'];
     let defaults = { icon: 'info', iconHtml: "<i class='fas fa-database'></i>" }
 
     // No records exist on the report
@@ -462,7 +466,7 @@ Gather and save current user settings to cookie
 ReportTweaks.fn.saveCookie = function() {
     let localCookie = {};
     $("#rtCheckboxes input").each((_, el) => { localCookie[$(el).attr('id')] = $(el).is(':checked') });
-    ReportTweaks.cookie[getParameterByName('report_id')] = localCookie;
+    ReportTweaks.cookie[ReportTweaks.em.getUrlParameter('report_id')] = localCookie;
     Cookies.set("RedcapReportTweaks", JSON.stringify(ReportTweaks.cookie), { sameSite: 'strict' });
 }
 
@@ -521,7 +525,7 @@ ReportTweaks.fn.waitForLoad = function() {
     ReportTweaks.fn.insertFilters();
 
     // Load Report Config
-    let settings = ReportTweaks.settings[getParameterByName('report_id')] || ReportTweaks.defaultSettings;
+    let settings = ReportTweaks.settings[ReportTweaks.em.getUrlParameter('report_id')] || ReportTweaks.defaultSettings;
     if (settings.merge) {
         ReportTweaks.fn.mergeRows();
     }
@@ -540,7 +544,7 @@ ReportTweaks.fn.waitForLoad = function() {
 
     // Load Cookie
     let cookie = JSON.parse(Cookies.get("RedcapReportTweaks") || '{}');
-    let report = getParameterByName('report_id');
+    let report = ReportTweaks.em.getUrlParameter('report_id');
     if (!cookie[report] && location.host == "ctri-redcap.dom.wisc.edu") { // Force custom defaults
         cookie[report] = { hideRepeatCols: true, hideEventCol: true };
     }
