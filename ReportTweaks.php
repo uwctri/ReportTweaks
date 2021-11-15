@@ -22,7 +22,7 @@ class ReportTweaks extends AbstractExternalModule {
         }
         
         // Reports Page (Edit or View Report, Not the all-reports page or stats/charts)
-        elseif (PAGE == 'DataExport/index.php' && $project_id && $_GET['report_id'] && !$_GET['stats_charts']) {
+        elseif (PAGE == 'DataExport/index.php' && $project_id && ($_GET['report_id'] || $_GET['create'] ) && !$_GET['stats_charts']) {
             $this->loadSettings($_GET['report_id']);
             $this->includeCSS();
             include('templates.php');

@@ -106,8 +106,12 @@ $(document).ready(function() {
     $(".reportTweaks").last().find('div').remove();
     $(".reportTweaks td").last().append(ReportTweaks.html.rtDashboard);
 
-    // Load settings and prep them clicks
+    // Load settings and prep them clicks (or, if new report, disable the buttons)
     ReportTweaks.fn.loadSettings();
-    $("#openWriteBackModal").click(ReportTweaks.fn.openModal);
-    $("#save-report-btn").click(ReportTweaks.fn.saveSettings);
+    if (ReportTweaks.em.getUrlParameter('report_id')) {
+        $("#openWriteBackModal").click(ReportTweaks.fn.openModal);
+        $("#save-report-btn").click(ReportTweaks.fn.saveSettings);
+    } else {
+        $("input[name^=tweaks_]").prop('disabled', true);
+    }
 });
