@@ -78,30 +78,32 @@ ReportTweaks.fn.packageData = function() {
     let settings = ReportTweaks.settings['_wb'];
     let counter = 0;
     let counterDay = new Date(today);
+    let writeValue = settings.writeStatic;
+    let type = settings.writeType;
+
+    if (type == "today") {
+        writeValue = today;
+    } else if (type == "ask") {
+        writeValue = $(`#${settings.field}`).val();
+    }
+
+    let writeIsInt = $.isNumeric(writeValue) && Math.floor(writeValue) == writeValue;
 
     table.rows().every(function() {
         if (!$(this.node()).is(':visible'))
             return;
-        let data = this.data();
-        let writeValue = settings.writeStatic;
-        let type = settings.writeType;
-
-        if (type == "today") {
-            writeValue = today;
-        } else if (type == "ask") {
-            writeValue = $(`#${settings.field}`).val();
-        }
 
         if (settings.increment) {
             if (type == "today") {
                 writeValue = counterDay.toISOString().split('T')[0];
-            } else {
+            } else if (writeIsInt) {
                 writeValue = (Number(writeValue) + counter).toString();
             }
             counter++;
             counterDay.setDate(counterDay.getDate() + 1);
         }
 
+        let data = this.data();
         let record = $(data[ReportTweaks.coreColumnMap[ReportTweaks.record_id]])[0].text;
         let eventid = settings.event || data[ReportTweaks.coreColumnMap['redcap_event_name']] || "";
         let instrument = data[ReportTweaks.coreColumnMap['redcap_repeat_instrument']] || "";
