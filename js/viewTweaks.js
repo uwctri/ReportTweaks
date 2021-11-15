@@ -549,7 +549,7 @@ ReportTweaks.fn.waitForLoad = function() {
 }
 
 /*
- Load the templates and our load func
+ Load the templates and start our load func
  */
 $(document).ready(function() {
     ReportTweaks.html = {};

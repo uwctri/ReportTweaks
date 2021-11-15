@@ -45,13 +45,14 @@ class ReportTweaks extends AbstractExternalModule {
         $json = empty($json) ? array() : (array)json_decode($json);
 
         // Escape 3 feilds that are html enabled 
-        if ( !empty($json['_wb']) ) {
+        $new = json_decode($_POST['settings']);
+        if ( !empty($new['_wb']) ) {
             foreach( ['footer','modalBtn','modalText'] as $html ) {
-                $json['_wb'][$html] = REDCap::escapeHtml($json['_wb'][$html]);
+                $new['_wb'][$html] = REDCap::escapeHtml($new['_wb'][$html]);
             }
         }
 
-        $json[$_POST['report']] = json_decode($_POST['settings']);
+        $json[$_POST['report']] = $new;
         $this->setProjectSetting('json', json_encode($json));
     }
     

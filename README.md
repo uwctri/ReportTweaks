@@ -6,12 +6,12 @@ Report tweaks adds options to hide redcap generated columns, merge rows from the
 
 ## Installing
 
-This EM isn't yet available to install via redcap's EM database so you'll need to install to your modules folder (i.e. `redcap/modules/report_tweaks_v1.0.0`) manually.
+You can install the module from the REDCap EM repo or drop it directly in your modules folder (i.e. `redcap/modules/report_tweaks_v1.0.0`).
 
 ## Configuration
 
 Configuration is done on the edit report screen under a new "Report Tweaks" section. Some settings can also be toggled on the report itself.
 
-## Call Outs
+## Call Outs / Issues / Planned Features
 
-* None
+*  Planned Feature - Date filtering via drop down to show "Past N Days", "Past N Months", specific months, bi-weekly etc. All configuratble within the current report tweaks area.
