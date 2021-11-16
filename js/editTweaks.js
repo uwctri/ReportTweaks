@@ -94,7 +94,7 @@ $(document).ready(function() {
 
     // Load the templates
     ReportTweaks.html = {};
-    $.each($("template").prop('content').children, (_, el) =>
+    $.each($("template[id=ReportTweaks]").prop('content').children, (_, el) =>
         ReportTweaks.html[$(el).prop('id')] = $(el).prop('outerHTML'));
 
     // Insert a new box area for our custom settings

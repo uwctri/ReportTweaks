@@ -505,6 +505,10 @@ ReportTweaks.fn.waitForLoad = function() {
         return;
     }
 
+    if ($("#rtCopyDataBtn").length) { // Stop double loading on animation lag
+        return;
+    }
+
     // Calculate locations (col #s) of redcap generated variables 
     ReportTweaks.coreColumnMap = {};
     $(`#report_table 
@@ -555,7 +559,7 @@ ReportTweaks.fn.waitForLoad = function() {
  */
 $(document).ready(function() {
     ReportTweaks.html = {};
-    $.each($("template").prop('content').children, (_, el) =>
+    $.each($("template[id=ReportTweaks]").prop('content').children, (_, el) =>
         ReportTweaks.html[$(el).prop('id')] = $(el).prop('outerHTML'));
     ReportTweaks.fn.waitForLoad();
 });

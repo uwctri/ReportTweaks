@@ -1,4 +1,4 @@
-<template>
+<template id="ReportTweaks">
 
 <!-- Edit Report Page -->
 
