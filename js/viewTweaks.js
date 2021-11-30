@@ -149,7 +149,7 @@ ReportTweaks.fn.openModal = function() {
     if (!isNumeric(ReportTweaks.coreColumnMap[ReportTweaks.record_id])) {
         Swal.fire({...defaults,
             title: ReportTweaks.em.tt("modal_view_3"),
-            html: ReportTweaks.em.tt("modal_view_4").replace('{0}', ReportTweaks.record_id),
+            html: ReportTweaks.em.tt("modal_view_4").replace('_', ReportTweaks.record_id),
         });
         return;
     }
@@ -230,7 +230,7 @@ ReportTweaks.fn.openModal = function() {
                     Swal.fire({
                         icon: 'success',
                         title: ReportTweaks.em.tt("modal_view_15"),
-                        text: ReportTweaks.em.tt("modal_view_16").replace('{0}', Object.keys(data.ids).length),
+                        text: ReportTweaks.em.tt("modal_view_16").replace('_', Object.keys(data.ids).length),
                     });
                 }
             }
