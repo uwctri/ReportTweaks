@@ -16,4 +16,4 @@ Configuration is done on the edit report screen under a new "Report Tweaks" sect
 
 ## Call Outs / Issues / Planned Features
 
-*  Planned Feature - Date filtering via drop down to show "Past N Days", "Past N Months", specific months, bi-weekly etc. All configuratble within the current report tweaks area.
+*  Planned Feature - Date filtering via drop down to show "Past N Days", "Past N Months", specific months, bi-weekly etc. All configuratble within the current report tweaks area. No substaintale work has been done for this yet. 
