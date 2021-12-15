@@ -2,7 +2,6 @@
 
 namespace UWMadison\ReportTweaks;
 use ExternalModules\AbstractExternalModule;
-use ExternalModules\ExternalModules; // Todo - remove once tt_transferToJavascriptModuleObject issue is resolved
 use REDCap;
 
 class ReportTweaks extends AbstractExternalModule {
@@ -113,7 +112,7 @@ class ReportTweaks extends AbstractExternalModule {
     */
     private function loadSettings( $report ) {
         $this->initializeJavascriptModuleObject();
-        $this->tt_transferToJavascriptModuleObject(ExternalModules::getLanguageKeys($this->getPrefix(),true));
+        $this->tt_transferToJavascriptModuleObject();
         $json = ((array)json_decode( $this->getProjectSetting('json') ))[$report];
         $json = empty($json) ? $this->defaultSettings : $json;
         $data = json_encode([
