@@ -48,12 +48,31 @@ and the enable/disable floating headers button appear uniform with the
 new range search boxes at the top of report.
 */
 ReportTweaks.fn.insertFilters = function() {
+    
+    // HTML Setup
     $(".dataTables-rc-searchfilter-parent").css('width', '100%');
     $(".dataTables-rc-searchfilter-parent .col-sm-6").first().remove();
     $(".dataTables-rc-searchfilter-parent .col-sm-6").removeClass('col-sm-6').addClass('col-12 mt-1');
     $("#report_table_filter input").css('margin-right', '3px');
     $("#report_table_filter").prepend(ReportTweaks.html.rtFilters);
+    
+    // Populate the pivot drop down
+    let headers = $("#report_table th:visible :last-child").filter('div').map(function() {
+        return $(this).text();
+    });
+    $.each(headers, function (_, varName) {
+        $('#minmaxpivot').append($('<option>', { 
+            value: varName,
+            text : varName 
+        }));
+    });
+    
+    // Add the search function
     $.fn.dataTable.ext.search.push(ReportTweaks.fn.rangeSearch);
+    
+    // Perform the search when any of the new feilds are used
+    let table = $("#report_table").DataTable();
+    $('#minmaxpivot, #tableFilterMin, #tableFilterMax').keyup( table.draw );
 }
 
 /*
@@ -247,7 +266,8 @@ ReportTweaks.fn.rangeSearch = function(settings, data, dataIndex) {
     let max = $('#tableFilterMax').val();
     let target = $('#minmaxpivot').val() || "";
     let pivot = data[$("#report_table th").index($(`th:contains(${target})`))] || 0;
-
+    pivot = target == "record_id" ? pivot.split(' ')[0] : pivot;
+    
     min = isNumeric(min) ? Number(min) : isDate(min, 'm-d-y') ? date_mdy2ymd(min.replaceAll('/', '-')) : min;
     max = isNumeric(max) ? Number(max) : isDate(max, 'm-d-y') ? date_mdy2ymd(max.replaceAll('/', '-')) : max;
     pivot = isNumeric(pivot) ? Number(pivot) : isDate(pivot, 'm-d-y') ? date_mdy2ymd(pivot.replaceAll('/', '-')) : pivot;

@@ -15,13 +15,13 @@ class ReportTweaks extends AbstractExternalModule {
     public function redcap_every_page_top($project_id) {
         
         // Custom Config page
-        if (strpos(PAGE, 'manager/project.php') !== false && $project_id) {
+        if ( $this->isPage('ExternalModules/manager/project.php') && $project_id ) {
             $this->includePrefix();
             $this->includeJs('config.js');
         }
         
         // Reports Page (Edit or View Report, Not the all-reports page or stats/charts)
-        elseif (PAGE == 'DataExport/index.php' && $project_id && ($_GET['report_id'] || $_GET['create'] ) && !$_GET['stats_charts']) {
+        elseif ( $this->isPage('DataExport/index.php') && $project_id && ($_GET['report_id'] || $_GET['create'] ) && !$_GET['stats_charts']) {
             $this->loadSettings($_GET['report_id']);
             $this->includeCSS();
             include('templates.php');
@@ -41,7 +41,7 @@ class ReportTweaks extends AbstractExternalModule {
     */
     public function saveReportConfig() {
         $json = $this->getProjectSetting('json');
-        $json = empty($json) ? array() : (array)json_decode($json);
+        $json = empty($json) ? array() : json_decode($json, true);
 
         // Escape 3 feilds that are html enabled 
         $new = json_decode($_POST['settings'], true);
