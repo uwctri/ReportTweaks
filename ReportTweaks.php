@@ -116,6 +116,7 @@ class ReportTweaks extends AbstractExternalModule {
         $json = ((array)json_decode( $this->getProjectSetting('json') ))[$report];
         $json = empty($json) ? $this->defaultSettings : $json;
         $data = json_encode([
+            "isLong" => REDCap::isLongitudinal(),
             "csrf" => $this->getCSRFToken(),
             "router" => $this->getUrl('router.php'),
             "record_id" => REDCap::getRecordIdField(),

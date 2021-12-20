@@ -7,6 +7,9 @@ Load existing settings and populate the choices onto the page
 ReportTweaks.fn.loadSettings = function() {
     $.each(ReportTweaks.settings, (key, val) => $(`input[name=tweaks_${key}]`).prop('checked', val));
     ReportTweaks.modalSettings = ReportTweaks.settings['_wb'] || ReportTweaks.modalSettings;
+    if ( !ReportTweaks.isLong ) {
+        $("[name=tweaks_includeEvent]").prop('disabled', true);
+    }
 }
 
 /*
