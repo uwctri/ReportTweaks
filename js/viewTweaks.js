@@ -29,10 +29,11 @@ ReportTweaks.fn.insertCheckboxes = function() {
 
     // Insert into the DOM
     $("#report_div .d-print-none").eq(1).append(ReportTweaks.html.rtCheckboxes);
-    if (!Number.isInteger(ReportTweaks.coreColumnMap['redcap_repeat_instrument'])) {
+    let keys = Object.keys(ReportTweaks.coreColumnMap);
+    if (!keys.includes('redcap_repeat_instrument')) {
         $("#hideRepeatCols").prop('disabled', true).prop('checked', false).parent().hide();
     }
-    if (!Number.isInteger(ReportTweaks.coreColumnMap['redcap_event_name'])) {
+    if (!keys.includes('redcap_event_name')) {
         $("#hideEventCol").prop('disabled', true).prop('checked', false).parent().hide();
     }
 
@@ -447,9 +448,17 @@ ReportTweaks.fn.removeEmptyRows = function() {
 Toggle Column visibility for redcap_repeat_ columns.
 */
 ReportTweaks.fn.toggleRepeatCols = function(show) {
+    if ( Object.keys(ReportTweaks.coreColumnMap).includes('redcap_repeat_instrument') ) {
+        return;
+    }
     let table = $("#report_table").DataTable();
-    table.column(ReportTweaks.coreColumnMap['redcap_repeat_instrument']).visible(show);
-    table.column(ReportTweaks.coreColumnMap['redcap_repeat_instance']).visible(show);
+    let keys = Object.keys(ReportTweaks.coreColumnMap);
+    if ( keys.includes('redcap_repeat_instrument') ) {
+            table.column(ReportTweaks.coreColumnMap['redcap_repeat_instrument']).visible(show);
+    }
+    if ( keys.includes('redcap_repeat_instance') ) {
+        table.column(ReportTweaks.coreColumnMap['redcap_repeat_instance']).visible(show);
+    }
     ReportTweaks.fn.updateTableWidth();
 }
 
@@ -457,6 +466,9 @@ ReportTweaks.fn.toggleRepeatCols = function(show) {
 Toggle Column visibility for event name column.
 */
 ReportTweaks.fn.toggleEventCol = function(show) {
+    if ( !Object.keys(ReportTweaks.coreColumnMap).includes('redcap_event_name') ) {
+        return;
+    }
     let table = $("#report_table").DataTable();
     table.column(ReportTweaks.coreColumnMap['redcap_event_name']).visible(show);
     ReportTweaks.fn.updateTableWidth();
