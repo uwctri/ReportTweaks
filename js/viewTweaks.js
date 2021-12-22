@@ -448,9 +448,6 @@ ReportTweaks.fn.removeEmptyRows = function() {
 Toggle Column visibility for redcap_repeat_ columns.
 */
 ReportTweaks.fn.toggleRepeatCols = function(show) {
-    if ( Object.keys(ReportTweaks.coreColumnMap).includes('redcap_repeat_instrument') ) {
-        return;
-    }
     let table = $("#report_table").DataTable();
     let keys = Object.keys(ReportTweaks.coreColumnMap);
     if ( keys.includes('redcap_repeat_instrument') ) {
