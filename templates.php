@@ -15,9 +15,14 @@
         <input name="tweaks_removeEmpty" type="checkbox"> <?=$this->tt('dash_empty'); ?>
     </div>
     <div style="margin:0 0 4px 20px;text-indent:-18px;">
+        <input name="tweaks_dateRange" type="checkbox"> <?=$this->tt('dash_range'); ?>
+    </div>
+    <div style="margin:0 0 4px 20px;text-indent:-18px;">
         <input name="tweaks_writeback" type="checkbox"> <?=$this->tt('dash_writeback'); ?> <br/> <span id="openWriteBackModal"><i class="fas fa-cog ml-3" style="color:grey"></i><?=$this->tt('dash_config'); ?></span>
     </div>
 </div>
+
+<select id="rtDateRangeField" class="ml-2 fs12"></select>
 
 <div class="container wbModal" id="rtModal">
     <div class="row">
@@ -128,6 +133,21 @@
         <div class="col-md-7">
             <span class="font-weight-bold"><?=$this->tt('hide_repeat'); ?>: </span>
             <input type='checkbox' class='checkbox-inline' id='hideRepeatCols'>
+        </div>
+    </div>
+    <div class="row no-gutters">
+        <div class="col-md-12">
+            <span class="font-weight-bold"><?=$this->tt('live_date'); ?>: </span>
+            <select id='filterDateRange'>
+                <option value="-1"></option>
+                <option value="1">Yesterday</option>
+                <option value="7">Past Week</option>
+                <option value="14">Past 2 Weeks</option>
+                <option value="30">Past Month</option>
+                <option value="60">Past 2 Months</option>
+                <option value="90">Past 3 Months</option>
+                <option value="365">Past Year</option>
+            </select>
         </div>
     </div>
 </div>

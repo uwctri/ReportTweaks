@@ -20,6 +20,8 @@ Configuration is done on the edit report screen under a new "Report Tweaks" sect
 
 * Adding a Writeback feature will display a button on the report that end-users can click to update some field on a subject's record to a defined value. Settings for the writeback feature can be enabled by checking the box next to the feature and edited by clicking the "configure" button. That value could be static (i.e. set only in the Edit Report screen), determined by the user when they click the writeback button, or the current date.
 
+* The field used by the date range live filter must be on the report
+
 ## Call Outs / Issues / Planned Features
 
-*  Planned Feature - Date filtering via drop down to show "Past N Days", "Past N Months", specific months, bi-weekly etc. All configuratble within the current report tweaks area. No substaintale work has been done for this yet. 
+*  None yet

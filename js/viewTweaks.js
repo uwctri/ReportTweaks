@@ -2,6 +2,15 @@ ReportTweaks.fn = {};
 ReportTweaks.cookie = {};
 
 /*
+Utility function to add days to a date
+*/
+Date.prototype.addDays = function(days) {
+    let date = new Date(this.valueOf());
+    date.setDate(date.getDate() + days);
+    return date;
+}
+
+/*
 Manipulate DOM to insert the Copy Button regardless
 of report format.
 */
@@ -22,13 +31,20 @@ ReportTweaks.fn.insertCopyBtn = function() {
 
 /*
 Manipulate DOM to insert the config checkboxes for hiding
-Event and Redcap repeat vars. Hides the boxes after insert
-if they are not able to be used.
+Event and Redcap repeat vars and date range filter. Hides
+either after insert if they are not able to be used.
 */
-ReportTweaks.fn.insertCheckboxes = function() {
-
+ReportTweaks.fn.insertToggleFilters = function() {
+    
+    // Gather header info
+    let headers = $("#report_table th:visible :last-child").filter('div').map(function() {
+        return $(this).text();
+    }).get();
+    
     // Insert into the DOM
     $("#report_div .d-print-none").eq(1).append(ReportTweaks.html.rtCheckboxes);
+    
+    // Hide some checkboxes if needed
     let keys = Object.keys(ReportTweaks.coreColumnMap);
     if (!keys.includes('redcap_repeat_instrument')) {
         $("#hideRepeatCols").prop('disabled', true).prop('checked', false).parent().hide();
@@ -36,11 +52,21 @@ ReportTweaks.fn.insertCheckboxes = function() {
     if (!keys.includes('redcap_event_name')) {
         $("#hideEventCol").prop('disabled', true).prop('checked', false).parent().hide();
     }
+    
+    // Hide the date range filter if needed
+    let field = ReportTweaks.settings.dateField;
+    if (!field || !headers.includes(field)) {
+        $("#filterDateRange").parent().hide();
+    }
 
     // Add events to toggle col visibility
     let fn = ReportTweaks.fn;
     $("#hideRepeatCols").on('click', function() { fn.toggleRepeatCols(!this.checked) });
     $("#hideEventCol").on('click', function() { fn.toggleEventCol(!this.checked) });
+    
+    // No need to add an event for the date range filter, its already handled in rangeSearch
+    let table = $("#report_table").DataTable();
+    $('#filterDateRange').on('change', table.draw );
 }
 
 /*
@@ -263,21 +289,38 @@ Datatables search function to find values between to points. Points
 can be alpha, numeric, or dates.
 */
 ReportTweaks.fn.rangeSearch = function(settings, data, dataIndex) {
-    let min = $('#tableFilterMin').val();
-    let max = $('#tableFilterMax').val();
-    let target = $('#minmaxpivot').val() || "";
-    let pivot = data[$("#report_table th").index($(`th:contains(${target})`))] || 0;
-    pivot = target == "record_id" ? pivot.split(' ')[0] : pivot;
     
-    min = isNumeric(min) ? Number(min) : isDate(min, 'm-d-y') ? date_mdy2ymd(min.replaceAll('/', '-')) : min;
-    max = isNumeric(max) ? Number(max) : isDate(max, 'm-d-y') ? date_mdy2ymd(max.replaceAll('/', '-')) : max;
-    pivot = isNumeric(pivot) ? Number(pivot) : isDate(pivot, 'm-d-y') ? date_mdy2ymd(pivot.replaceAll('/', '-')) : pivot;
-
+    let min, max, field;
+    let days = Number($("#filterDateRange").val());
+    
+    // Prioritize the drop down over the search
+    if ( ReportTweaks.settings.dateRange && days > 0 ) {
+        min = (new Date(today)).addDays(-days).toISOString().split('T')[0];
+        max = today;
+        field = ReportTweaks.settings.dateField;
+    } else {
+        min = $('#tableFilterMin').val();
+        max = $('#tableFilterMax').val();
+        field = $('#minmaxpivot').val() || "";
+        
+        // Parse any non-ymd dates to ymd
+        min = isNumeric(min) ? Number(min) : isDate(min, 'm-d-y') ? date_mdy2ymd(min.replaceAll('/', '-')) : min;
+        max = isNumeric(max) ? Number(max) : isDate(max, 'm-d-y') ? date_mdy2ymd(max.replaceAll('/', '-')) : max;
+    }
+    
+    // Gather the data for the row
+    let datum = data[$("#report_table th").index($(`th:contains(${field})`))] || 0;
+    datum = field == "record_id" ? datum.split(' ')[0] : datum;
+    
+    // Col data could be non-ymd
+    datum = isNumeric(datum) ? Number(datum) : isDate(datum, 'm-d-y') ? date_mdy2ymd(datum.replaceAll('/', '-')) : datum;
+    
+    // Apply filter
     if ((min === "" && max === "") ||
-        (target === "") ||
-        (min === "" && pivot <= max) ||
-        (min <= pivot && max === "") ||
-        (min <= pivot && pivot <= max))
+        (field === "") ||
+        (min === "" && datum <= max) ||
+        (min <= datum && max === "") ||
+        (min <= datum && datum <= max))
         return true;
     return false;
 }
@@ -550,7 +593,7 @@ ReportTweaks.fn.waitForLoad = function() {
 
     // Build checkboxes
     ReportTweaks.fn.insertCopyBtn();
-    ReportTweaks.fn.insertCheckboxes();
+    ReportTweaks.fn.insertToggleFilters();
     ReportTweaks.fn.insertFilters();
 
     // Load Report Config

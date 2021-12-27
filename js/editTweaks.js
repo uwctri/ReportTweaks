@@ -24,6 +24,7 @@ ReportTweaks.fn.saveSettings = function() {
         settings[$(el).attr('name').replace('tweaks_', '')] = $(el).is(':checked')
     });
     settings['_wb'] = ReportTweaks.modalSettings;
+    settings['dateField'] = $("#rtDateRangeField").val();
 
     // Post back to DB
     $.ajax({
@@ -108,7 +109,14 @@ $(document).ready(function() {
     $(".reportTweaks div").first().html(ReportTweaks.html.rtTitle);
     $(".reportTweaks").last().find('div').remove();
     $(".reportTweaks td").last().append(ReportTweaks.html.rtDashboard);
-
+    
+    // Setup the Date range field
+    $(".reportTweaks [name=tweaks_dateRange]").parent().append(ReportTweaks.html.rtDateRangeField);
+    dropdown = $("#rtDateRangeField");
+    $.each(Object.keys(fieldForms), function() {
+        dropdown.append(new Option(this, this))
+    });
+    
     // Load settings and prep them clicks (or, if new report, disable the buttons)
     ReportTweaks.fn.loadSettings();
     if (ReportTweaks.em.getUrlParameter('report_id')) {
