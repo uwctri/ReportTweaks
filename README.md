@@ -24,4 +24,4 @@ Configuration is done on the edit report screen under a new "Report Tweaks" sect
 
 ## Call Outs / Issues / Planned Features
 
-*  None yet
+*  Update end-user facing docs to include info about date range filtering, removing rows, the copy button, and search ranges
