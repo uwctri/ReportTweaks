@@ -356,18 +356,29 @@ tab deliminted sheet that can be easily pasted into excel or other software.
 */
 ReportTweaks.fn.mergeRows = function() {
     
+    // Gather common values
     let table = $("#report_table").DataTable();
+    let headers = []
+    table.columns().every(function() {
+      headers.push( $(this.header()).find(':last-child').text() );
+    });
+    let ridIndex = headers.indexOf(ReportTweaks.record_id);
     
-    // Check if we have a record id column, if so be sure its sorted
-    let recordCol = $(`#report_table th:contains(${ReportTweaks.record_id})`);
-    if (!recordCol.length) {
+    // Check if we have a record id column
+    if (ridIndex < 0) {
         // Can't merge without record_id
         return;
     }
-    if ($(recordCol).index() != 0 && !$(recordCol).hasClass('sorting_asc')) {
-        $(recordCol).click();
+    
+    // Get initial ordering
+    let ordering = ReportTweaks.sort.filter(x=>x.field).map(x=>[headers.indexOf(x.field),x.sort.toLowerCase()]);
+    
+    // Re-sort the table if needed, we will restore at the end
+    let sort = false;
+    if ( ordering[0][0] != ridIndex || ordering.length > 1 ) {
+        sort = true;
+        table.order([ridIndex,"asc"]).draw();
     }
-    recordCol = $(recordCol).index();
     
     // Setup for loop
     let prev = -1;
@@ -407,12 +418,12 @@ ReportTweaks.fn.mergeRows = function() {
         // Save the node to our remove list
         remove.push(table.row(rowIdx - 1).node());
     });
-
+    
     // Review and trash rows that have been merged into others, update
     remove.forEach((row) => table.row(row).remove());
     $("#report_div span").first().text(table.rows().count()); // count
     table.draw();
-
+    
     // Loop over every column to find those with dates in them, 
     // we only walk down a col until we find a non-blank so this
     // doesn't take much time
@@ -430,7 +441,7 @@ ReportTweaks.fn.mergeRows = function() {
             if (el) return false;
         });
     });
-
+    
     // Rebuild the cache for sorting dates
     // Data Tables doesn't allow for chaning ordering/sorting functions after
     // init nor does it expose plugin tools to do so. We are forced to manually
@@ -451,6 +462,12 @@ ReportTweaks.fn.mergeRows = function() {
                 parseInt(date.replaceAll('-', '') + (time || "").replace(':', ''));
         });
     });
+    
+    // Restore init sorting scheme
+    if ( sort ) {
+        table.order(ordering).draw();
+    }
+    
 }
 
 /*

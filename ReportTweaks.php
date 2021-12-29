@@ -14,6 +14,8 @@ class ReportTweaks extends AbstractExternalModule {
     */
     public function redcap_every_page_top($project_id) {
         
+        $report_id = $_GET['report_id'];
+        
         // Custom Config page
         if ( $this->isPage('ExternalModules/manager/project.php') && $project_id ) {
             $this->includePrefix();
@@ -21,14 +23,15 @@ class ReportTweaks extends AbstractExternalModule {
         }
         
         // Reports Page (Edit or View Report, Not the all-reports page or stats/charts)
-        elseif ( $this->isPage('DataExport/index.php') && $project_id && ($_GET['report_id'] || $_GET['create'] ) && !$_GET['stats_charts']) {
-            $this->loadSettings($_GET['report_id']);
+        elseif ( $this->isPage('DataExport/index.php') && $project_id && ($report_id || $_GET['create'] ) && !$_GET['stats_charts']) {
+            $this->loadSettings($report_id);
             $this->includeCSS();
             include('templates.php');
             if ( $_GET['addedit'] ) {
                 $this->includeJs('editTweaks.js');
             } else {
                 $this->includeCookies();
+                $this->loadReportSorting($report_id);
                 $this->includeJs('viewTweaks.js');
             }
         }
@@ -134,10 +137,16 @@ class ReportTweaks extends AbstractExternalModule {
     a report ID. Also packs the Redcap JS object
     */
     private function loadSettings( $report ) {
+        
+        // Setup Redcap JS object
         $this->initializeJavascriptModuleObject();
         $this->tt_transferToJavascriptModuleObject();
+        
+        // Get the EM's settings
         $json = ((array)json_decode( $this->getProjectSetting('json') ))[$report];
         $json = empty($json) ? $this->defaultSettings : $json;
+        
+        // Organize the strucutre
         $data = json_encode([
             "isLong" => REDCap::isLongitudinal(),
             "csrf" => $this->getCSRFToken(),
@@ -145,8 +154,30 @@ class ReportTweaks extends AbstractExternalModule {
             "record_id" => REDCap::getRecordIdField(),
             "settings" => $json,
         ]);
+        
+        // Pass down to JS
         echo "<script>var {$this->module_global} = {$data};</script>";
         echo "<script> {$this->module_global}.em = {$this->getJavascriptModuleObjectName()}</script>";
+    }
+    
+    /*
+    Pass down sorting info for the report. The datatalbes 
+    API doesn't store inital sorting order.
+    */
+    private function loadReportSorting( $report ) {
+        $sql = '
+            SELECT orderby_field1, orderby_field2, orderby_field3, 
+            orderby_sort1, orderby_sort2, orderby_sort3
+            FROM ctriredcap.redcap_reports 
+            WHERE report_id = ?';
+        $result = $this->query($sql, [$report]);
+        $row = $result->fetch_assoc();
+        $orders = json_encode([
+            ['field'=>$row['orderby_field1'],'sort'=>$row['orderby_sort1']],
+            ['field'=>$row['orderby_field2'],'sort'=>$row['orderby_sort2']],
+            ['field'=>$row['orderby_field3'],'sort'=>$row['orderby_sort3']]
+        ]);
+        echo "<script>{$this->module_global}.sort = {$orders};</script>";
     }
     
     /*
