@@ -262,21 +262,22 @@ ReportTweaks.fn.openModal = function() {
             success: (data) => {
                 // Expected Reuturn value format - 
                 // {"errors":[],"warnings":[],"ids":{"5512":"5512"},"item_count":2} OR
-                // {"warnings":["No data to write"]
+                // {"warnings":["No data to write"]}
                 console.log(data);
                 data = JSON.parse(data);
                 ReportTweaks.writeDone = true;
                 if (data.warnings.length || data.errors.length) {
+                    let warningText = data.warnings.concat( data.errors ).join(', ');
                     Swal.fire({
                         icon: 'warning',
                         title: ReportTweaks.em.tt("modal_view_13"),
-                        text: ReportTweaks.em.tt("modal_view_14")
+                        html: `${ReportTweaks.em.tt("modal_view_14")}<br>${ReportTweaks.em.tt("modal_view_15")}: ${warningText}`
                     });
                 } else {
                     Swal.fire({
                         icon: 'success',
-                        title: ReportTweaks.em.tt("modal_view_15"),
-                        text: ReportTweaks.em.tt("modal_view_16").replace('_', Object.keys(data.ids).length),
+                        title: ReportTweaks.em.tt("modal_view_16"),
+                        text: ReportTweaks.em.tt("modal_view_17").replace('_', Object.keys(data.ids).length),
                     });
                 }
             }

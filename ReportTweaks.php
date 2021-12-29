@@ -69,6 +69,19 @@ class ReportTweaks extends AbstractExternalModule {
         $instrumentMap = $this->makeInstrumentMap();
         $writeArray = [];
         
+        // Get User rights to check if we can write to the field
+        $user = $this->getUser()->getUsername();
+        $rights = REDCap::getUserRights($user)[$user]['forms'];
+        $form = REDCap::getDataDictionary($pid,'array')[$field]['form_name'];
+        if ( $rights[$form] != "1" ) { // 1 is View&Edit, 0 is Hidden, 2 is View Only
+            echo json_encode([
+                "form" => $form,
+                "warnings" => [$this->tt('warning_1')],
+                "errors" => []
+            ]);
+            return;
+        }
+        
         // Loop over every line of the report we got back
         foreach ( $writeBackData as $data ) {
             
@@ -103,7 +116,17 @@ class ReportTweaks extends AbstractExternalModule {
                 $writeArray[$record][$event][$field] = $data['val'];
             }
         }
-        echo json_encode(!empty($writeArray) ? REDCap::saveData($pid, 'array', $writeArray) : ["warnings"=>["No data to write"]]);
+        
+        // Save and return or pass error
+        if ( !empty($writeArray) ) {
+            $out = REDCap::saveData($pid, 'array', $writeArray);
+        } else {
+            $out = [ 
+                "warnings" => [$this->tt('warning_2')],
+                "errors" => []
+            ];
+        }
+        echo json_encode($out);
     }
     
     /*
