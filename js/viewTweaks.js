@@ -55,7 +55,8 @@ ReportTweaks.fn.insertToggleFilters = function() {
     
     // Hide the date range filter if needed
     let field = ReportTweaks.settings.dateField;
-    if (!field || !headers.includes(field)) {
+    let enable = ReportTweaks.settings.dateRange;
+    if (!enable || !field || !headers.includes(field)) {
         $("#filterDateRange").parent().hide();
     }
 
@@ -352,23 +353,24 @@ ReportTweaks.fn.copyData = function() {
 /*
 Copy all visible data from the report including headers to the user's clipboard as a 
 tab deliminted sheet that can be easily pasted into excel or other software.
-Doesn't use Datatables API.
 */
 ReportTweaks.fn.mergeRows = function() {
-
-    // check if we have a record id column, if so be sure its sorted
+    
+    let table = $("#report_table").DataTable();
+    
+    // Check if we have a record id column, if so be sure its sorted
     let recordCol = $(`#report_table th:contains(${ReportTweaks.record_id})`);
     if (!recordCol.length) {
+        // Can't merge without record_id
         return;
     }
     if ($(recordCol).index() != 0 && !$(recordCol).hasClass('sorting_asc')) {
         $(recordCol).click();
     }
     recordCol = $(recordCol).index();
-
+    
     // Setup for loop
     let prev = -1;
-    let table = $("#report_table").DataTable();
     let remove = [];
 
     // Loop over all rows in the table
