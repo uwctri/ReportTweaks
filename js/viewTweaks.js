@@ -371,7 +371,10 @@ ReportTweaks.fn.mergeRows = function() {
     }
     
     // Get initial ordering
-    let ordering = ReportTweaks.sort.filter(x=>x.field).map(x=>[headers.indexOf(x.field),x.sort.toLowerCase()]);
+    let ordering = table.order();
+    if ( !ordering.length ) {
+        ordering = ReportTweaks.sort.filter(x=>x.field).map(x=>[headers.indexOf(x.field),x.sort.toLowerCase()]);
+    }
     
     // Re-sort the table if needed, we will restore at the end
     let sort = false;
@@ -381,28 +384,40 @@ ReportTweaks.fn.mergeRows = function() {
     }
     
     // Setup for loop
-    let prev = -1;
+    let prev = {
+        'id': -1,
+        'index': -1
+    };
     let remove = [];
-
+    
     // Loop over all rows in the table
     table.rows().every(function(rowIdx, tableLoop, rowLoop) {
-
-        // Check to see if this and prev row match
-        // If not, bail and go to next row
+        
+        // Gather basic stuff
         let row = this.data();
         let id = $(row[0]).text().split(' ')[0].trim();
-        if (id != prev) { prev = id; return; }
-        prev = id;
-
+        let tmpId = prev.id;
+        
+        // Check to see if this and prev row match, else bail 
+        // We need to stash rowIdx here as datatables API always
+        // returns the init row index, not the current displayed ordered
+        if (id != tmpId) { 
+            prev = {
+                'id': id,
+                'index': rowIdx
+            }; 
+            return; 
+        }
+        
         // Map all current and previous row data so we can compare display values
         // Merge the two and if successful continue 
         let currData = $.map(row, (value, key) => typeof value == "string" ? value : value['display']);
-        let prevData = $.map(table.row(rowIdx - 1).data(), (value, key) => typeof value == "string" ? value : value['display']);
+        let prevData = $.map(table.row(prev.index).data(), (value, key) => typeof value == "string" ? value : value['display']);
         let newData = ReportTweaks.fn.mergeArray(currData, prevData);
         if (!newData) {
             return;
         }
-
+        
         // Populate the row with the merged data and remove
         // any bad styling. Skip spots where no new data exists
         $(this.node()).find("td").each(function(index, el) {
@@ -414,9 +429,15 @@ ReportTweaks.fn.mergeRows = function() {
                 table.cell(rowIdx, index).data(newData[index]);
             }
         });
-
+        
         // Save the node to our remove list
-        remove.push(table.row(rowIdx - 1).node());
+        remove.push(table.row(prev.index).node());
+        
+        // Stash current id/row
+        prev = {
+            'id': id,
+            'index': rowIdx
+        }; 
     });
     
     // Review and trash rows that have been merged into others, update
