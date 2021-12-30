@@ -362,10 +362,10 @@ ReportTweaks.fn.mergeRows = function() {
     table.columns().every(function() {
       headers.push( $(this.header()).find(':last-child').text() );
     });
-    let ridIndex = headers.indexOf(ReportTweaks.record_id);
+    let idIdx = headers.indexOf(ReportTweaks.record_id);
     
     // Check if we have a record id column
-    if (ridIndex < 0) {
+    if (idIdx < 0) {
         // Can't merge without record_id
         return;
     }
@@ -378,9 +378,9 @@ ReportTweaks.fn.mergeRows = function() {
     
     // Re-sort the table if needed, we will restore at the end
     let sort = false;
-    if ( ordering[0][0] != ridIndex || ordering.length > 1 ) {
+    if ( ordering[0][0] != idIdx || ordering.length > 1 ) {
         sort = true;
-        table.order([ridIndex,"asc"]).draw();
+        table.order([idIdx,"asc"]).draw();
     }
     
     // Setup for loop
