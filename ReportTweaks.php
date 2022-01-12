@@ -168,7 +168,7 @@ class ReportTweaks extends AbstractExternalModule {
         $sql = '
             SELECT orderby_field1, orderby_field2, orderby_field3, 
             orderby_sort1, orderby_sort2, orderby_sort3
-            FROM ctriredcap.redcap_reports 
+            FROM redcap_reports 
             WHERE report_id = ?';
         $result = $this->query($sql, [$report]);
         $row = $result->fetch_assoc();
