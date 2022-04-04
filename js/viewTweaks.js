@@ -67,7 +67,9 @@ ReportTweaks.fn.insertToggleFilters = function() {
     
     // No need to add an event for the date range filter, its already handled in rangeSearch
     let table = $("#report_table").DataTable();
-    $('#filterDateRange').on('change', table.draw );
+    if ( table.data().any() ) {
+        $('#filterDateRange').on('change', table.draw );
+    }
 }
 
 /*
@@ -613,7 +615,8 @@ Full build out of the EM occurs here, we re-invoke if changing pages
 on a multipage report. 
 */
 ReportTweaks.fn.waitForLoad = function() {
-    if ($("#report_table thead").length == 0) { // Still Loading
+    if ( $("#report_table thead").length == 0 || 
+        !$.fn.DataTable.isDataTable("#report_table")) { // Still Loading
         window.requestAnimationFrame(ReportTweaks.fn.waitForLoad);
         return;
     }
