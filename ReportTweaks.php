@@ -32,6 +32,7 @@ class ReportTweaks extends AbstractExternalModule {
             } else {
                 $this->includeCookies();
                 $this->loadReportSorting($report_id);
+                $this->loadReportHeaders($report_id);
                 $this->includeJs('viewTweaks.js');
             }
         }
@@ -152,7 +153,7 @@ class ReportTweaks extends AbstractExternalModule {
             "csrf" => $this->getCSRFToken(),
             "router" => $this->getUrl('router.php'),
             "record_id" => REDCap::getRecordIdField(),
-            "settings" => $json,
+            "settings" => $json
         ]);
         
         // Pass down to JS
@@ -178,6 +179,22 @@ class ReportTweaks extends AbstractExternalModule {
             ['field'=>$row['orderby_field3'],'sort'=>$row['orderby_sort3']]
         ]);
         echo "<script>{$this->module_global}.sort = {$orders};</script>";
+    }
+
+    /*
+    Pass down a mapping of key headers on the report.
+    */
+    private function loadReportHeaders( $report ) {
+        $record_id = REDCap::getRecordIdField();
+        $headers = explode(',',preg_split("@[\s+　]@u",REDCap::getReport($report,'csv'))[0]);
+        $headers = array_combine($headers, range(0, count($headers)-1));
+        $headers = json_encode([
+            "record_id" => $headers[$record_id],
+            "redcap_repeat_instrument" => $headers["redcap_repeat_instrument"],
+            "redcap_repeat_instance" => $headers["redcap_repeat_instance"],
+            "redcap_event_name" => $headers["redcap_event_name"]
+        ]);
+        echo "<script>{$this->module_global}.headerMap = {$headers};</script>";
     }
     
     /*
