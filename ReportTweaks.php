@@ -14,6 +14,11 @@ class ReportTweaks extends AbstractExternalModule {
     */
     public function redcap_every_page_top($project_id) {
         
+        // Bail if user isn't logged in
+        if ( !defined("USERID") ) {
+            return;
+        }
+        
         $report_id = $_GET['report_id'];
         
         // Custom Config page
