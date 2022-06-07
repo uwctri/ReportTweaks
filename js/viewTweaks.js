@@ -45,7 +45,7 @@ ReportTweaks.fn.insertToggleFilters = function () {
     $("#report_div .d-print-none").eq(1).append(ReportTweaks.html.rtCheckboxes);
 
     // Hide some checkboxes if needed
-    let keys = Object.keys(ReportTweaks.headerMap);
+    let keys = Object.keys(ReportTweaks.headerMap.redcap);
     if (!keys.includes('redcap_repeat_instrument')) {
         $("#hideRepeatCols").prop('disabled', true).prop('checked', false).parent().hide();
     }
@@ -153,10 +153,10 @@ ReportTweaks.fn.packageData = function () {
         }
 
         let data = this.data();
-        let record = $(data[ReportTweaks.headerMap['record_id']])[0].text;
-        let eventid = settings.event || data[ReportTweaks.headerMap['redcap_event_name']] || "";
-        let instrument = data[ReportTweaks.headerMap['redcap_repeat_instrument']] || "";
-        let instance = data[ReportTweaks.headerMap['redcap_repeat_instance']] || "";
+        let record = $(data[ReportTweaks.headerMap.redcap['record_id']])[0].text;
+        let eventid = settings.event || data[ReportTweaks.headerMap.redcap['redcap_event_name']] || "";
+        let instrument = data[ReportTweaks.headerMap.redcap['redcap_repeat_instrument']] || "";
+        let instance = data[ReportTweaks.headerMap.redcap['redcap_repeat_instance']] || "";
         writeArray.push({
             'record': record,
             'event': eventid, // Can be event id or display name
@@ -196,7 +196,7 @@ ReportTweaks.fn.openModal = function () {
     }
 
     // Record ID is missing from the report
-    if (!isNumeric(ReportTweaks.headerMap['record_id'])) {
+    if (!isNumeric(ReportTweaks.headerMap.redcap['record_id'])) {
         Swal.fire({
             ...defaults,
             title: ReportTweaks.em.tt("modal_view_3"),
@@ -364,11 +364,7 @@ ReportTweaks.fn.mergeRows = function () {
 
     // Gather common values
     let table = $("#report_table").DataTable();
-    let headers = []
-    table.columns().every(function () {
-        headers.push($(this.header()).find(':last-child').text());
-    });
-    let idIdx = headers.indexOf(ReportTweaks.record_id);
+    const idIdx = ReportTweaks.headerMap.redcap.record_id;
 
     // Check if we have a record id column
     if (idIdx < 0) {
@@ -379,7 +375,7 @@ ReportTweaks.fn.mergeRows = function () {
     // Get initial ordering
     let ordering = table.order();
     if (!ordering.length) {
-        ordering = ReportTweaks.sort.filter(x => x.field).map(x => [headers.indexOf(x.field), x.sort.toLowerCase()]);
+        ordering = ReportTweaks.sort.filter(x => x.field).map(x => [ReportTweaks.headerMap.all[x.field], x.sort.toLowerCase()]);
     }
 
     // Re-sort the table if needed, we will restore at the end
@@ -458,7 +454,7 @@ ReportTweaks.fn.mergeRows = function () {
     let isAnyDate = RegExp('[0-9]{2,4}-[0-9]{2}-[0-9]{2,4}');
     table.columns().every(function (colIdx) {
         // Skip redcap generated cols
-        if (Object.values(ReportTweaks.headerMap).includes(colIdx)) {
+        if (Object.values(ReportTweaks.headerMap.redcap).includes(colIdx)) {
             return;
         }
         $.each(this.data(), function (i, el) {
@@ -506,7 +502,7 @@ then do so, otherwise return false.
 ReportTweaks.fn.mergeArray = function (arr1, arr2) {
     let target = [];
     $.each(arr1, function (index, arr1Value) {
-        if (Object.values(ReportTweaks.headerMap).includes(index)) {
+        if (Object.values(ReportTweaks.headerMap.redcap).includes(index)) {
             target[index] = null;
         } else if (arr2[index] == "" || arr1Value == "" || arr1Value == arr2[index]) {
             target[index] = arr1Value || arr2[index];
@@ -528,7 +524,7 @@ ReportTweaks.fn.removeEmptyRows = function () {
     table.rows().every(function (rowIdx, tableLoop, rowLoop) {
         let data = $.map(this.data(), (value, key) => typeof value == "string" ? value : value['display']);
         if (data.filter((datum, colIdx) =>
-            !Object.values(ReportTweaks.headerMap).includes(colIdx) && datum != "").length == 0) {
+            !Object.values(ReportTweaks.headerMap.redcap).includes(colIdx) && datum != "").length == 0) {
             remove.push(this.node());
         }
     });
@@ -541,12 +537,12 @@ Toggle Column visibility for redcap_repeat_columns.
 */
 ReportTweaks.fn.toggleRepeatCols = function (show) {
     let table = $("#report_table").DataTable();
-    let keys = Object.keys(ReportTweaks.headerMap);
+    let keys = Object.keys(ReportTweaks.headerMap.redcap);
     if (keys.includes('redcap_repeat_instrument')) {
-        table.column(ReportTweaks.headerMap['redcap_repeat_instrument']).visible(show);
+        table.column(ReportTweaks.headerMap.redcap['redcap_repeat_instrument']).visible(show);
     }
     if (keys.includes('redcap_repeat_instance')) {
-        table.column(ReportTweaks.headerMap['redcap_repeat_instance']).visible(show);
+        table.column(ReportTweaks.headerMap.redcap['redcap_repeat_instance']).visible(show);
     }
     ReportTweaks.fn.updateTableWidth();
 }
@@ -555,11 +551,11 @@ ReportTweaks.fn.toggleRepeatCols = function (show) {
 Toggle Column visibility for event name column.
 */
 ReportTweaks.fn.toggleEventCol = function (show) {
-    if (!Object.keys(ReportTweaks.headerMap).includes('redcap_event_name')) {
+    if (!Object.keys(ReportTweaks.headerMap.redcap).includes('redcap_event_name')) {
         return;
     }
     let table = $("#report_table").DataTable();
-    table.column(ReportTweaks.headerMap['redcap_event_name']).visible(show);
+    table.column(ReportTweaks.headerMap.redcap['redcap_event_name']).visible(show);
     ReportTweaks.fn.updateTableWidth();
 }
 
@@ -632,7 +628,7 @@ ReportTweaks.fn.waitForLoad = function () {
     }
 
     // Filter out any null values
-    ReportTweaks.headerMap = Object.fromEntries(Object.entries(ReportTweaks.headerMap).filter(pair => isInteger(pair[1])));
+    ReportTweaks.headerMap.redcap = Object.fromEntries(Object.entries(ReportTweaks.headerMap.redcap).filter(pair => isInteger(pair[1])));
 
     // Build checkboxes
     ReportTweaks.fn.insertCopyBtn();
