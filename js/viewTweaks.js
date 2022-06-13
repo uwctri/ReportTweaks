@@ -1,5 +1,7 @@
 ReportTweaks.fn = {};
 ReportTweaks.cookie = {};
+ReportTweaks.isAnyDate = RegExp('[0-9]{2,4}-[0-9]{2}-[0-9]{2,4}');
+ReportTweaks.isMdyDate = RegExp('[0-9]{2}-[0-9]{2}-[0-9]{4}');
 
 /*
 Utility function to add days to a date
@@ -312,8 +314,8 @@ ReportTweaks.fn.rangeSearch = function (settings, data, dataIndex) {
         field = $('#minmaxpivot').val() || "";
 
         // Parse any non-ymd dates to ymd
-        min = isNumeric(min) ? Number(min) : isDate(min, 'm-d-y') ? date_mdy2ymd(min.replaceAll('/', '-')) : min;
-        max = isNumeric(max) ? Number(max) : isDate(max, 'm-d-y') ? date_mdy2ymd(max.replaceAll('/', '-')) : max;
+        min = isNumeric(min) ? Number(min) : ReportTweaks.isMdyDate.test(min) ? date_mdy2ymd(min.replaceAll('/', '-')) : min;
+        max = isNumeric(max) ? Number(max) : ReportTweaks.isMdyDate.test(max) ? date_mdy2ymd(max.replaceAll('/', '-')) : max;
     }
 
     // Gather the data for the row
@@ -321,7 +323,7 @@ ReportTweaks.fn.rangeSearch = function (settings, data, dataIndex) {
     datum = field == ReportTweaks.record_id ? datum.split(' ')[0] : datum;
 
     // Col data could be non-ymd
-    datum = isNumeric(datum) ? Number(datum) : isDate(datum, 'm-d-y') ? date_mdy2ymd(datum.replaceAll('/', '-')) : datum;
+    datum = isNumeric(datum) ? Number(datum) : ReportTweaks.isMdyDate.test(datum) ? date_mdy2ymd(datum.replaceAll('/', '-')) : datum;
 
     // Apply filter
     if ((min === "" && max === "") ||
@@ -451,7 +453,6 @@ ReportTweaks.fn.mergeRows = function () {
     // we only walk down a col until we find a non-blank so this
     // doesn't take much time
     let buildCache = [];
-    let isAnyDate = RegExp('[0-9]{2,4}-[0-9]{2}-[0-9]{2,4}');
     table.columns().every(function (colIdx) {
         // Skip redcap generated cols
         if (Object.values(ReportTweaks.headerMap.redcap).includes(colIdx)) {
@@ -459,7 +460,7 @@ ReportTweaks.fn.mergeRows = function () {
         }
         $.each(this.data(), function (i, el) {
             el = el.split(' ')[0];
-            if (el && isAnyDate.test(el))
+            if (el && ReportTweaks.isAnyDate.test(el))
                 buildCache.push(colIdx);
             if (el) return false;
         });
@@ -480,7 +481,7 @@ ReportTweaks.fn.mergeRows = function () {
                 return;
             }
             let [date, time] = data.split(' ');
-            date = isDate(date, "m-d-y") ? date_mdy2ymd(date) : date;
+            date = ReportTweaks.isMdyDate.test(date) ? date_mdy2ymd(date) : date;
             $.fn.dataTable.settings[0].aoData[rowIdx]._aSortData[colIdx] =
                 parseInt(date.replaceAll('-', '') + (time || "").replace(':', ''));
         });
