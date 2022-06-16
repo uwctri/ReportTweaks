@@ -24,4 +24,6 @@ Configuration is done on the edit report screen under a new "Report Tweaks" sect
 
 ## Call Outs / Issues / Planned Features
 
-*  Update end-user facing docs to include info about date range filtering, removing rows, the copy button, and search ranges
+* Update end-user facing docs to include info about date range filtering, removing rows, the copy button, and search ranges
+
+* Currently the sorting configuration of a report may not display correctly if row merge is in use and the current user does not have data export rights for ALL fields on the report 

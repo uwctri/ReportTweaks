@@ -377,7 +377,10 @@ ReportTweaks.fn.mergeRows = function () {
     // Get initial ordering
     let ordering = table.order();
     if (!ordering.length) {
-        ordering = ReportTweaks.sort.filter(x => x.field).map(x => [ReportTweaks.headerMap.all[x.field], x.sort.toLowerCase()]);
+        ordering = ReportTweaks.sort
+            .filter(x => x.field)
+            .map(x => [ReportTweaks.headerMap.all[x.field], x.sort.toLowerCase()])
+            .filter(x => x[0] !== undefined);
     }
 
     // Re-sort the table if needed, we will restore at the end
@@ -490,7 +493,7 @@ ReportTweaks.fn.mergeRows = function () {
     // Restore init sorting scheme
     if (sort) {
         // Newer versions of DT throw an error when passing in the default -1
-        ordering[0][0] = ordering[0][0] == -1 ? 0 : ordering[0][0]
+        ordering[0][0] = ordering[0][0] == -1 ? 0 : ordering[0][0];
         table.order(ordering).draw();
     }
 
