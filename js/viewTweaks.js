@@ -141,8 +141,7 @@ ReportTweaks.fn.packageData = function () {
     let writeIsInt = $.isNumeric(writeValue) && Math.floor(writeValue) == writeValue;
 
     table.rows().every(function () {
-        if (!$(this.node()).is(':visible'))
-            return;
+        if (!$(this.node()).is(':visible')) return;
 
         if (settings.increment) {
             if (type == "today") {
@@ -154,11 +153,16 @@ ReportTweaks.fn.packageData = function () {
             counterDay.setDate(counterDay.getDate() + 1);
         }
 
-        let data = this.data();
-        let record = $(data[ReportTweaks.headerMap.redcap['record_id']])[0].text;
-        let eventid = settings.event || data[ReportTweaks.headerMap.redcap['redcap_event_name']] || "";
+        const data = this.data();
+        const record = $(data[ReportTweaks.headerMap.redcap['record_id']])[0].text;
+        let eventid = data[ReportTweaks.headerMap.redcap['redcap_event_name']] || "";
         let instrument = data[ReportTweaks.headerMap.redcap['redcap_repeat_instrument']] || "";
         let instance = data[ReportTweaks.headerMap.redcap['redcap_repeat_instance']] || "";
+        if ( settings.event ) {
+            eventid = settings.event;
+            instrument = "";
+            instance = "";
+        }
         writeArray.push({
             'record': record,
             'event': eventid, // Can be event id or display name

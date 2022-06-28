@@ -191,6 +191,10 @@ class ReportTweaks extends AbstractExternalModule {
     */
     private function loadReportHeaders( $report ) {
         $record_id = REDCap::getRecordIdField();
+        // $sql = '
+        //     SELECT field_name FROM redcap_reports_fields 
+        //     WHERE report_id = ? ORDER BY field_order';
+        // $result = $this->query($sql, [$report]);
         $headers = explode(',',preg_split("@[\s+　]@u",REDCap::getReport($report,'csv'))[0]);
         $headers = array_combine($headers, range(0, count($headers)-1));
         $redcapHeaders = json_encode([
