@@ -197,16 +197,17 @@ class ReportTweaks extends AbstractExternalModule {
         // $result = $this->query($sql, [$report]);
         $headers = explode(',',preg_split("@[\s+　]@u",REDCap::getReport($report,'csv'))[0]);
         $headers = array_combine($headers, range(0, count($headers)-1));
-        $redcapHeaders = json_encode([
-            "record_id" => $headers[$record_id],
-            "redcap_repeat_instrument" => $headers["redcap_repeat_instrument"],
-            "redcap_repeat_instance" => $headers["redcap_repeat_instance"],
-            "redcap_event_name" => $headers["redcap_event_name"]
+        $headers = array_merge(["record_id" => $headers[$record_id]],$headers);
+        $formated = json_encode([
+            "all" => $headers,
+            "core" => [
+                "record_id" => $headers[$record_id],
+                "redcap_repeat_instrument" => $headers["redcap_repeat_instrument"],
+                "redcap_repeat_instance" => $headers["redcap_repeat_instance"],
+                "redcap_event_name" => $headers["redcap_event_name"]
+            ]
         ]);
-        $allHeaders = json_encode(array_merge(["record_id" => $headers[$record_id]],$headers));
-        echo "<script>{$this->module_global}.headerMap = {};</script>";
-        echo "<script>{$this->module_global}.headerMap.all = {$allHeaders};</script>";
-        echo "<script>{$this->module_global}.headerMap.redcap = {$redcapHeaders};</script>";
+        echo "<script>{$this->module_global}.headerMap = {$formated};</script>";
     }
     
     /*
