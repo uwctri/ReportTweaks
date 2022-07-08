@@ -395,7 +395,7 @@ ReportTweaks.fn.mergeRows = function () {
     if (!ordering.length) {
         ordering = ReportTweaks.sort
             .filter(x => x.field)
-            .map(x => [ReportTweaks.headers.all[x.field].index, x.sort.toLowerCase()])
+            .map(x => [ReportTweaks.headers.all[x.field]?.index, x.sort.toLowerCase()])
             .filter(x => x[0] !== undefined);
     }
 
