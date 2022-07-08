@@ -47,7 +47,7 @@ ReportTweaks.fn.insertToggleFilters = function () {
     $("#report_div .d-print-none").eq(1).append(ReportTweaks.html.rtCheckboxes);
 
     // Hide some checkboxes if needed
-    let keys = Object.keys(ReportTweaks.headerMap.core);
+    let keys = Object.keys(ReportTweaks.headers.core);
     if (!keys.includes('redcap_repeat_instrument')) {
         $("#hideRepeatCols").prop('disabled', true).prop('checked', false).parent().hide();
     }
@@ -154,10 +154,10 @@ ReportTweaks.fn.packageData = function () {
         }
 
         const data = this.data();
-        const record = $(data[ReportTweaks.headerMap.core['record_id']])[0].text;
-        let eventid = data[ReportTweaks.headerMap.core['redcap_event_name']] || "";
-        let instrument = data[ReportTweaks.headerMap.core['redcap_repeat_instrument']] || "";
-        let instance = data[ReportTweaks.headerMap.core['redcap_repeat_instance']] || "";
+        const record = $(data[ReportTweaks.headers.core['record_id']])[0].text;
+        let eventid = data[ReportTweaks.headers.core['redcap_event_name']] || "";
+        let instrument = data[ReportTweaks.headers.core['redcap_repeat_instrument']] || "";
+        let instance = data[ReportTweaks.headers.core['redcap_repeat_instance']] || "";
         if (settings.event) {
             eventid = settings.event;
             instrument = "";
@@ -202,7 +202,7 @@ ReportTweaks.fn.openModal = function () {
     }
 
     // Record ID is missing from the report
-    if (!isNumeric(ReportTweaks.headerMap.core['record_id'])) {
+    if (!isNumeric(ReportTweaks.headers.core['record_id'])) {
         Swal.fire({
             ...defaults,
             title: ReportTweaks.em.tt("modal_view_3"),
@@ -370,7 +370,7 @@ ReportTweaks.fn.mergeRows = function () {
 
     // Gather common values
     let table = $("#report_table").DataTable();
-    const idIdx = ReportTweaks.headerMap.core.record_id;
+    const idIdx = ReportTweaks.headers.core.record_id;
 
     // Check if we have a record id column
     if (idIdx < 0) {
@@ -378,12 +378,24 @@ ReportTweaks.fn.mergeRows = function () {
         return;
     }
 
+    // Build a mapping of colindex to validation AND
+    // Build a cache of the indexs with a date validation for later
+    let validationMap = {};
+    let buildCache = []
+    Object.entries(ReportTweaks.headers.all).forEach((el) => {
+        let data = el[1];
+        validationMap[data.index] = data.validation;
+        if (["date_mdy", "date_dmy"].includes(data.validation)) {
+            buildCache.push(data.index);
+        }
+    });
+
     // Get initial ordering
     let ordering = table.order();
     if (!ordering.length) {
         ordering = ReportTweaks.sort
             .filter(x => x.field)
-            .map(x => [ReportTweaks.headerMap.all[x.field], x.sort.toLowerCase()])
+            .map(x => [ReportTweaks.headers.all[x.field].index, x.sort.toLowerCase()])
             .filter(x => x[0] !== undefined);
     }
 
@@ -456,23 +468,6 @@ ReportTweaks.fn.mergeRows = function () {
     $("#report_div span").first().text(table.rows().count()); // count
     table.draw();
 
-    // Loop over every column to find those with dates in them, 
-    // we only walk down a col until we find a non-blank so this
-    // doesn't take much time
-    let buildCache = [];
-    table.columns().every(function (colIdx) {
-        // Skip redcap generated cols
-        if (Object.values(ReportTweaks.headerMap.core).includes(colIdx)) {
-            return;
-        }
-        $.each(this.data(), function (i, el) {
-            el = el.split(' ')[0];
-            if (el && ReportTweaks.isAnyDate.test(el))
-                buildCache.push(colIdx);
-            if (el) return false;
-        });
-    });
-
     // Rebuild the cache for sorting dates
     // Data Tables doesn't allow for chaning ordering/sorting functions after
     // init nor does it expose plugin tools to do so. We are forced to manually
@@ -488,7 +483,11 @@ ReportTweaks.fn.mergeRows = function () {
                 return;
             }
             let [date, time] = data.split(' ');
-            date = ReportTweaks.isMdyDate.test(date) ? date_mdy2ymd(date) : date;
+            if (validationMap[colIdx] == "date_dmy") {
+                date = date_dmy2ymd(date);
+            } else if (validationMap[colIdx] == "date_mdy") {
+                date = date_mdy2ymd(date);
+            }
             $.fn.dataTable.settings[0].aoData[rowIdx]._aSortData[colIdx] =
                 parseInt(date.replaceAll('-', '') + (time || "").replace(':', ''));
         });
@@ -510,7 +509,7 @@ then do so, otherwise return false.
 ReportTweaks.fn.mergeArray = function (arr1, arr2) {
     let target = [];
     $.each(arr1, function (index, arr1Value) {
-        if (Object.values(ReportTweaks.headerMap.core).includes(index)) {
+        if (Object.values(ReportTweaks.headers.core).includes(index)) {
             target[index] = null;
         } else if (arr2[index] == "" || arr1Value == "" || arr1Value == arr2[index]) {
             target[index] = arr1Value || arr2[index];
@@ -532,7 +531,7 @@ ReportTweaks.fn.removeEmptyRows = function () {
     table.rows().every(function (rowIdx, tableLoop, rowLoop) {
         let data = $.map(this.data(), (value, key) => typeof value == "string" ? value : value['display']);
         if (data.filter((datum, colIdx) =>
-            !Object.values(ReportTweaks.headerMap.core).includes(colIdx) && datum != "").length == 0) {
+            !Object.values(ReportTweaks.headers.core).includes(colIdx) && datum != "").length == 0) {
             remove.push(this.node());
         }
     });
@@ -545,12 +544,12 @@ Toggle Column visibility for redcap_repeat_columns.
 */
 ReportTweaks.fn.toggleRepeatCols = function (show) {
     let table = $("#report_table").DataTable();
-    let keys = Object.keys(ReportTweaks.headerMap.core);
+    let keys = Object.keys(ReportTweaks.headers.core);
     if (keys.includes('redcap_repeat_instrument')) {
-        table.column(ReportTweaks.headerMap.core['redcap_repeat_instrument']).visible(show);
+        table.column(ReportTweaks.headers.core['redcap_repeat_instrument']).visible(show);
     }
     if (keys.includes('redcap_repeat_instance')) {
-        table.column(ReportTweaks.headerMap.core['redcap_repeat_instance']).visible(show);
+        table.column(ReportTweaks.headers.core['redcap_repeat_instance']).visible(show);
     }
     ReportTweaks.fn.updateTableWidth();
 }
@@ -559,11 +558,11 @@ ReportTweaks.fn.toggleRepeatCols = function (show) {
 Toggle Column visibility for event name column.
 */
 ReportTweaks.fn.toggleEventCol = function (show) {
-    if (!Object.keys(ReportTweaks.headerMap.core).includes('redcap_event_name')) {
+    if (!Object.keys(ReportTweaks.headers.core).includes('redcap_event_name')) {
         return;
     }
     let table = $("#report_table").DataTable();
-    table.column(ReportTweaks.headerMap.core['redcap_event_name']).visible(show);
+    table.column(ReportTweaks.headers.core['redcap_event_name']).visible(show);
     ReportTweaks.fn.updateTableWidth();
 }
 
@@ -636,7 +635,7 @@ ReportTweaks.fn.waitForLoad = function () {
     }
 
     // Filter out any null values
-    ReportTweaks.headerMap.core = Object.fromEntries(Object.entries(ReportTweaks.headerMap.core).filter(pair => isInteger(pair[1])));
+    ReportTweaks.headers.core = Object.fromEntries(Object.entries(ReportTweaks.headers.core).filter(pair => isInteger(pair[1])));
 
     // Build checkboxes
     ReportTweaks.fn.insertCopyBtn();

@@ -190,24 +190,32 @@ class ReportTweaks extends AbstractExternalModule {
     Pass down a mapping of key headers on the report.
     */
     private function loadReportHeaders( $report ) {
+        global $Proj;
+        $proj = (array)$Proj;
         $record_id = REDCap::getRecordIdField();
-        // $sql = '
+        // $sql = ' // Can't easily do this, missing the redcap_ vars
         //     SELECT field_name FROM redcap_reports_fields 
         //     WHERE report_id = ? ORDER BY field_order';
         // $result = $this->query($sql, [$report]);
         $headers = explode(',',preg_split("@[\s+　]@u",REDCap::getReport($report,'csv'))[0]);
         $headers = array_combine($headers, range(0, count($headers)-1));
         $headers = array_merge(["record_id" => $headers[$record_id]],$headers);
+        foreach ( $headers as $name => $index ) {
+            $headers[$name] = [
+                "index" => $index,
+                "validation" => $proj["metadata"][$name]["element_validation_type"]
+            ];
+        }
         $formated = json_encode([
             "all" => $headers,
             "core" => [
-                "record_id" => $headers[$record_id],
-                "redcap_repeat_instrument" => $headers["redcap_repeat_instrument"],
-                "redcap_repeat_instance" => $headers["redcap_repeat_instance"],
-                "redcap_event_name" => $headers["redcap_event_name"]
+                "record_id" => $headers[$record_id]["index"],
+                "redcap_repeat_instrument" => $headers["redcap_repeat_instrument"]["index"],
+                "redcap_repeat_instance" => $headers["redcap_repeat_instance"]["index"],
+                "redcap_event_name" => $headers["redcap_event_name"]["index"]
             ]
         ]);
-        echo "<script>{$this->module_global}.headerMap = {$formated};</script>";
+        echo "<script>{$this->module_global}.headers = {$formated};</script>";
     }
     
     /*
