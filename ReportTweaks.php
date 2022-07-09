@@ -190,22 +190,62 @@ class ReportTweaks extends AbstractExternalModule {
     Pass down a mapping of key headers on the report.
     */
     private function loadReportHeaders( $report ) {
+
+        // Global with metadata
         global $Proj;
         $proj = (array)$Proj;
         $record_id = REDCap::getRecordIdField();
-        // $sql = ' // Can't easily do this, missing the redcap_ vars
-        //     SELECT field_name FROM redcap_reports_fields 
-        //     WHERE report_id = ? ORDER BY field_order';
-        // $result = $this->query($sql, [$report]);
-        $headers = explode(',',preg_split("@[\s+　]@u",REDCap::getReport($report,'csv'))[0]);
-        $headers = array_combine($headers, range(0, count($headers)-1));
-        $headers = array_merge(["record_id" => $headers[$record_id]],$headers);
-        foreach ( $headers as $name => $index ) {
+        $headers = [];
+
+        // Some users won't be able to get fields via getReport below, this is our fallback
+        $idx = 0;
+        $sql = '
+            SELECT field_name FROM redcap_reports_fields 
+            WHERE report_id = ? ORDER BY field_order';
+        $result = $this->query($sql, [$report]);
+        while ( $row = $result->fetch_assoc() ){
+            $name = $row["field_name"];
+            if ( in_array( $name, array_keys($headers) ) ) {
+                continue;
+            }
+            $headers[$name] = [
+                "index" => $idx,
+                "validation" => $proj["metadata"][$name]["element_validation_type"]
+            ];
+            $idx += 1;
+        }
+
+        // Grab all data via the api as a csv, strip it down to just headers and package it
+        $csv = explode(',',preg_split("@[\s+　]@u",REDCap::getReport($report,'csv'))[0]);
+        $csv = array_combine($csv, range(0, count($csv)-1));
+        $maxRedcap = -1;
+        $minRedcap = 999;
+        $rowCount = 0;
+        foreach ( $csv as $name => $index ) {
             $headers[$name] = [
                 "index" => $index,
                 "validation" => $proj["metadata"][$name]["element_validation_type"]
             ];
+            if ( in_array($name, ["redcap_repeat_instrument","redcap_repeat_instance","redcap_event_name"]) ) {
+                if ($index > $maxRedcap) $maxRedcap = $index;
+                if ($index < $minRedcap) $minRedcap = $index;
+            } else {
+                $rowCount += 1;
+            }
         }
+
+        // If the user didn't have full export rights then they only get the 3 redcap_
+        // vars, we can adjust values we got from the SQL query to yeild correct indexes
+        if ( ($maxRedcap >= 0) && ($maxRedcap != $minRedcap) && ($idx != $rowCount) ) {
+            foreach ( $headers as $name => $data ) { 
+                if ( $data["index"] >= $minRedcap ) {
+                    $headers[$name]["index"] = $data["index"] + $maxRedcap;
+                }
+            }
+        }
+
+        // Prep for export to JS
+        $headers = array_merge(["record_id" => $headers[$record_id]],$headers);
         $formated = json_encode([
             "all" => $headers,
             "core" => [
