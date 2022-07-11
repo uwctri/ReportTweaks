@@ -178,11 +178,11 @@ class ReportTweaks extends AbstractExternalModule {
             WHERE report_id = ?';
         $result = $this->query($sql, [$report]);
         $row = $result->fetch_assoc();
-        $orders = json_encode([
-            ['field'=>$row['orderby_field1'],'sort'=>$row['orderby_sort1']],
-            ['field'=>$row['orderby_field2'],'sort'=>$row['orderby_sort2']],
-            ['field'=>$row['orderby_field3'],'sort'=>$row['orderby_sort3']]
-        ]);
+        foreach( range(1,3) as $i ) {
+            $orders[] = ['field'=>htmlentities($row["orderby_field$i"], ENT_QUOTES),
+                         'sort' =>htmlentities($row["orderby_sort$i"], ENT_QUOTES)];
+        }
+        $orders = json_encode($orders);
         echo "<script>{$this->module_global}.sort = {$orders};</script>";
     }
 
