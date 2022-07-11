@@ -201,13 +201,12 @@ class ReportTweaks extends AbstractExternalModule {
         $idx = 0;
         $sql = '
             SELECT field_name FROM redcap_reports_fields 
-            WHERE report_id = ? ORDER BY field_order';
+            WHERE report_id = ? 
+            AND isNull(limiter_group_operator) 
+            ORDER BY field_order';
         $result = $this->query($sql, [$report]);
         while ( $row = $result->fetch_assoc() ){
             $name = $row["field_name"];
-            if ( in_array( $name, array_keys($headers) ) ) {
-                continue;
-            }
             $headers[$name] = [
                 "index" => $idx,
                 "validation" => $proj["metadata"][$name]["element_validation_type"]
