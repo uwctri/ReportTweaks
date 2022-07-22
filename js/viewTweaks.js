@@ -114,7 +114,7 @@ are configured.
 ReportTweaks.fn.insertWriteback = function () {
     $("#report_div .d-print-none").eq(1).append(
         ReportTweaks.html.rtModalBtn.replace('BtnLabel',
-            ReportTweaks.settings['_wb'].modalBtn));
+            ReportTweaks.fn.htmlDecode(ReportTweaks.settings['_wb'].modalBtn)));
     $(".tweaks_writeback").on("click", ReportTweaks.fn.openModal);
 }
 
@@ -183,6 +183,14 @@ ReportTweaks.fn.toTitleCase = function (str) {
 }
 
 /*
+Safe decode for HTML strings sent from PHP
+*/
+ReportTweaks.fn.htmlDecode = function (input) {
+    var doc = new DOMParser().parseFromString(input, "text/html");
+    return doc.documentElement.textContent;
+}
+
+/*
 Checks report, configuration, and if valid then generates/displays
 the write back modal to user. 
 */
@@ -232,7 +240,7 @@ ReportTweaks.fn.openModal = function () {
     }
 
     // Build out modal text if needed
-    let html = settings.modalText;
+    let html = ReportTweaks.fn.htmlDecode(settings.modalText);
     if (settings.writeType == 'ask') {
         html += ReportTweaks.html.rtModalInput
             .replace('LabelText', ReportTweaks.fn.toTitleCase(settings.field))
@@ -244,7 +252,7 @@ ReportTweaks.fn.openModal = function () {
         icon: 'question',
         title: ReportTweaks.em.tt("modal_view_9"),
         html: html,
-        footer: settings.footer,
+        footer: ReportTweaks.fn.htmlDecode(settings.footer),
         showCloseButton: true,
         showCancelButton: true,
         confirmButtonColor: '#28a745',

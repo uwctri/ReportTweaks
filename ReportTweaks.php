@@ -196,6 +196,7 @@ class ReportTweaks extends AbstractExternalModule {
         $proj = (array)$Proj;
         $record_id = REDCap::getRecordIdField();
         $headers = [];
+        $redcap_fields = ["redcap_repeat_instrument","redcap_repeat_instance","redcap_event_name"];
 
         // Some users won't be able to get fields via getReport below, this is our fallback
         $idx = 0;
@@ -225,7 +226,7 @@ class ReportTweaks extends AbstractExternalModule {
                 "index" => $index,
                 "validation" => $proj["metadata"][$name]["element_validation_type"]
             ];
-            if ( in_array($name, ["redcap_repeat_instrument","redcap_repeat_instance","redcap_event_name"]) ) {
+            if ( in_array($name, $redcap_fields) ) {
                 if ($index > $maxRedcap) $maxRedcap = $index;
                 if ($index < $minRedcap) $minRedcap = $index;
             } else {
@@ -237,7 +238,7 @@ class ReportTweaks extends AbstractExternalModule {
         // vars, we can adjust values we got from the SQL query to yeild correct indexes
         if ( ($maxRedcap >= 0) && ($maxRedcap != $minRedcap) && ($idx != $rowCount) ) {
             foreach ( $headers as $name => $data ) { 
-                if ( $data["index"] >= $minRedcap ) {
+                if ( !in_array($name, $redcap_fields) && $data["index"] >= $minRedcap ) {
                     $headers[$name]["index"] = $data["index"] + $maxRedcap;
                 }
             }
