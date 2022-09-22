@@ -33,6 +33,7 @@ class ReportTweaks extends AbstractExternalModule {
             $this->includeCSS();
             include('templates.php');
             if ( $_GET['addedit'] ) {
+                $this->includeDateFields();
                 $this->includeJs('editTweaks.js');
             } else {
                 $this->includeCookies();
@@ -41,7 +42,6 @@ class ReportTweaks extends AbstractExternalModule {
                 $this->includeJs('viewTweaks.js');
             }
         }
-        
     }
     
     /*
@@ -256,6 +256,21 @@ class ReportTweaks extends AbstractExternalModule {
             ]
         ]);
         echo "<script>{$this->module_global}.headers = {$formated};</script>";
+    }
+    
+    /*
+    Pass down a list of all date(time) fields
+    */
+    private function includeDateFields() {
+        global $Proj;
+        $load = [];
+        foreach( $Proj->metadata as $field => $data ) {
+            if ( !empty($data["element_validation_type"]) && (strpos($data["element_validation_type"], "date") !== false) ) {
+                $load[] = $field;
+            }
+        }
+        $load = json_encode($load);
+        echo "<script>{$this->module_global}.fields = {$load};</script>";
     }
     
     /*

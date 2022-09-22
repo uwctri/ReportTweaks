@@ -6,6 +6,7 @@ Load existing settings and populate the choices onto the page
 */
 ReportTweaks.fn.loadSettings = function() {
     $.each(ReportTweaks.settings, (key, val) => $(`input[name=tweaks_${key}]`).prop('checked', val));
+    $("#rtDateRangeField").val(ReportTweaks.settings['dateField']);
     ReportTweaks.modalSettings = ReportTweaks.settings['_wb'] || ReportTweaks.modalSettings;
     if ( !ReportTweaks.isLong ) {
         $("[name=tweaks_includeEvent]").prop('disabled', true);
@@ -112,10 +113,8 @@ $(document).ready(function() {
     
     // Setup the Date range field
     $(".reportTweaks [name=tweaks_dateRange]").parent().append(ReportTweaks.html.rtDateRangeField);
-    dropdown = $("#rtDateRangeField");
-    $.each(Object.keys(fieldForms), function() {
-        dropdown.append(new Option(this, this))
-    });
+    let dropdown = $("#rtDateRangeField");
+    ReportTweaks.fields.forEach( (el) => dropdown.append(new Option(el, el)) );
     
     // Load settings and prep them clicks (or, if new report, disable the buttons)
     ReportTweaks.fn.loadSettings();

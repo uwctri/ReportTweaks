@@ -22,7 +22,9 @@
     </div>
 </div>
 
-<select id="rtDateRangeField" class="ml-2 fs12"></select>
+<select id="rtDateRangeField" class="ml-2 fs12">
+    <option value=""></option>
+</select>
 
 <div class="container wbModal" id="rtModal">
     <div class="row">
