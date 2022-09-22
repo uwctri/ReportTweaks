@@ -4,7 +4,7 @@ ReportTweaks.modalSettings = {};
 /*
 Load existing settings and populate the choices onto the page
 */
-ReportTweaks.fn.loadSettings = function () {
+ReportTweaks.fn.loadSettings = () => {
     $.each(ReportTweaks.settings, (key, val) => $(`input[name=tweaks_${key}]`).prop('checked', val));
     $("#rtDateRangeField").val(ReportTweaks.settings['dateField']);
     ReportTweaks.modalSettings = ReportTweaks.settings['_wb'] || ReportTweaks.modalSettings;
@@ -16,7 +16,7 @@ ReportTweaks.fn.loadSettings = function () {
 /*
 Load existing settings and populate the choices onto the page
 */
-ReportTweaks.fn.saveSettings = function () {
+ReportTweaks.fn.saveSettings = () => {
 
     let settings = {};
 
@@ -45,7 +45,7 @@ ReportTweaks.fn.saveSettings = function () {
 /*
 Display the Write back config modal, load current settings & save settins on close
 */
-ReportTweaks.fn.openModal = function () {
+ReportTweaks.fn.openModal = () => {
 
     Swal.fire({
         title: ReportTweaks.em.tt('modal_edit_1'),
@@ -57,33 +57,28 @@ ReportTweaks.fn.openModal = function () {
 
         // Save settings on close, not written to DB
         ReportTweaks.modalSettings = {};
-        $(".wbModal").find('input, select, textarea').each(function () {
-            if (this.type == "checkbox") {
-                ReportTweaks.modalSettings[this.name] = this.checked;
-            } else if (this.type == "radio") {
-                if (this.checked)
-                    ReportTweaks.modalSettings[this.name] = this.value;
+        $(".wbModal").find('input, select, textarea').each((_, input) => {
+            if (input.type == "checkbox") {
+                ReportTweaks.modalSettings[input.name] = input.checked;
+            } else if (input.type == "radio") {
+                if (input.checked)
+                    ReportTweaks.modalSettings[input.name] = input.value;
             } else {
-                ReportTweaks.modalSettings[this.name] = this.value;
+                ReportTweaks.modalSettings[input.name] = input.value;
             }
         });
     });
 
+    $("input[name=writeType]").on('change', (el) => $("#writeStaticRow").toggle(el.currentTarget.value == "static")).change();
+
     // Generate options for the modal window
-    $("input[name=writeType]").on('change', function () {
-        $("#writeStaticRow").toggle(this.value == "static")
-    }).change();
     let dropdown = $("select[name=event]");
-    $("#filter_events option").each(function () {
-        dropdown.append(new Option(this.text, this.value))
-    });
+    $("#filter_events option").each((_, el) => dropdown.append(new Option(el.text, el.value)));
     dropdown = $("select[name=field]");
-    $.each(Object.keys(fieldForms), function () {
-        dropdown.append(new Option(this, this))
-    });
+    Object.keys(fieldForms).forEach((el) => dropdown.append(new Option(el, el)));
 
     // Load Existing Writeback Settings
-    $.each(ReportTweaks.modalSettings, function (key, setting) {
+    $.each(ReportTweaks.modalSettings, (key, setting) => {
         $el = $(`.wbModal [name=${key}]`);
         if ($el.attr('type') == "checkbox") {
             $el.prop('checked', setting);
@@ -95,7 +90,7 @@ ReportTweaks.fn.openModal = function () {
     });
 }
 
-$(document).ready(function () {
+$(document).ready(() => {
 
     // Load the templates
     ReportTweaks.html = {};
