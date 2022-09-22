@@ -321,5 +321,3 @@ class ReportTweaks extends AbstractExternalModule {
         echo "<link rel='stylesheet' href={$this->getURL('style.css')}>";
     }
 }
-
-?>
