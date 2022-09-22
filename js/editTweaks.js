@@ -102,7 +102,7 @@ $(document).ready(function() {
         ReportTweaks.html[$(el).prop('id')] = $(el).prop('outerHTML'));
 
     // Insert a new box area for our custom settings
-    let reportOpt = $("input[name=filter_type]").closest('tr').prevAll().eq(2);
+    let reportOpt = $("div[id=how_to_filters_link]").closest('tr').prevAll().eq(2);
     reportOpt.next().after(reportOpt.prev().nextAll(':lt(2)').addBack().clone().addClass('reportTweaks'));
 
     // Style the box with title, populate with template
