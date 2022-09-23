@@ -345,14 +345,13 @@ ReportTweaks.fn.copyData = () => {
     let headers = $("#report_table th:visible :last-child").filter('div').map((_, el) => $(el).text()).get();
 
     // For every cell organize it into our matrix/grid
-    let data = $("#report_table td:visible").map(function (index, value) {
-        if (index % headers.length == 0)
-            return '\n' + $(value).text();
-        return $(value).text();
+    let data = $("#report_table td:visible").map((index, value) => {
+        const prefix = index % headers.length == 0 ? '\n' : '';
+        return prefix + $(value).text();
     });
 
     // Stuff into the clipboard after inserting delimeters
-    navigator.clipboard.writeText(headers.get().join('\t') + data.get().join('\t'));
+    navigator.clipboard.writeText(headers.join('\t') + data.get().join('\t'));
 }
 
 /*
@@ -680,10 +679,10 @@ Watch for state history change (used on multi-page reports)
 We can't avoid polling due to page changing using history push state
 */
 let oldHref = document.location.href;
-window.onload = function () {
+window.onload = () => {
     let bodyList = document.querySelector("body");
-    let observer = new MutationObserver(function (mutations) {
-        mutations.forEach(function (mutation) {
+    let observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
             if (oldHref != document.location.href) {
                 oldHref = document.location.href;
                 ReportTweaks.fn.waitForLoad();
