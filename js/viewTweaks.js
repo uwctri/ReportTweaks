@@ -325,13 +325,13 @@ ReportTweaks.fn.rangeSearch = (settings, data, dataIndex) => {
     datum = isNumeric(datum) ? Number(datum) : ReportTweaks.isMdyDate.test(datum) ? date_mdy2ymd(datum.replaceAll('/', '-')) : datum;
 
     // Apply filter
-    if ((min === "" && max === "") ||
+    return (
+        (min === "" && max === "") ||
         (field === "") ||
         (min === "" && datum <= max) ||
         (min <= datum && max === "") ||
-        (min <= datum && datum <= max))
-        return true;
-    return false;
+        (min <= datum && datum <= max)
+    )
 }
 
 /*
