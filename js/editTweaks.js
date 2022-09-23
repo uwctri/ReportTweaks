@@ -114,8 +114,8 @@ $(document).ready(() => {
     // Load settings and prep them clicks (or, if new report, disable the buttons)
     ReportTweaks.fn.loadSettings();
     if (ReportTweaks.em.getUrlParameter('report_id')) {
-        $("#openWriteBackModal").click(ReportTweaks.fn.openModal);
-        $("#save-report-btn").click(ReportTweaks.fn.saveSettings);
+        $("#openWriteBackModal").on('click', ReportTweaks.fn.openModal);
+        $("#save-report-btn").on('click', ReportTweaks.fn.saveSettings);
     } else {
         $("input[name^=tweaks_]").prop('disabled', true);
     }
