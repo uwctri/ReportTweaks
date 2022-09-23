@@ -1,6 +1,5 @@
 ReportTweaks.fn = {};
 ReportTweaks.cookie = {};
-ReportTweaks.isAnyDate = RegExp('[0-9]{2,4}-[0-9]{2}-[0-9]{2,4}');
 ReportTweaks.isMdyDate = RegExp('[0-9]{2}-[0-9]{2}-[0-9]{4}');
 
 /*
@@ -16,7 +15,7 @@ Date.prototype.addDays = function (days) {
 Manipulate DOM to insert the Copy Button regardless
 of report format.
 */
-ReportTweaks.fn.insertCopyBtn = function () {
+ReportTweaks.fn.insertCopyBtn = () => {
     let html = ReportTweaks.html.rtCopyDataBtn;
     if ($(".report_pagenum_div").length) { // Pagination
         $(".report_pagenum_div").first().before(html);
@@ -36,12 +35,7 @@ Manipulate DOM to insert the config checkboxes for hiding
 Event and Redcap repeat vars and date range filter. Hides
 either after insert if they are not able to be used.
 */
-ReportTweaks.fn.insertToggleFilters = function () {
-
-    // Gather header info
-    let headers = $("#report_table th:visible :last-child").filter('div').map(function () {
-        return $(this).text();
-    }).get();
+ReportTweaks.fn.insertToggleFilters = () => {
 
     // Insert into the DOM
     $("#report_div .d-print-none").eq(1).append(ReportTweaks.html.rtCheckboxes);
@@ -58,14 +52,14 @@ ReportTweaks.fn.insertToggleFilters = function () {
     // Hide the date range filter if needed
     let field = ReportTweaks.settings.dateField;
     let enable = ReportTweaks.settings.dateRange;
-    if (!enable || !field || !headers.includes(field)) {
+    if (!enable || !field || !Object.keys(ReportTweaks.headers.all).includes(field)) {
         $("#filterDateRange").parent().hide();
     }
 
     // Add events to toggle col visibility
     let fn = ReportTweaks.fn;
-    $("#hideRepeatCols").on('click', function () { fn.toggleRepeatCols(!this.checked) });
-    $("#hideEventCol").on('click', function () { fn.toggleEventCol(!this.checked) });
+    $("#hideRepeatCols").on('click', (el) => fn.toggleRepeatCols(!el.currentTarget.checked));
+    $("#hideEventCol").on('click', (el) => fn.toggleEventCol(!el.currentTarget.checked));
 
     // No need to add an event for the date range filter, its already handled in rangeSearch
     let table = $("#report_table").DataTable();
@@ -79,7 +73,7 @@ Performs very minor DOM manipulations to make the default search box
 and the enable/disable floating headers button appear uniform with the 
 new range search boxes at the top of report.
 */
-ReportTweaks.fn.insertFilters = function () {
+ReportTweaks.fn.insertFilters = () => {
 
     // HTML Setup
     $(".dataTables-rc-searchfilter-parent").css('width', '100%');
@@ -89,15 +83,8 @@ ReportTweaks.fn.insertFilters = function () {
     $("#report_table_filter").prepend(ReportTweaks.html.rtFilters);
 
     // Populate the pivot drop down
-    let headers = $("#report_table th:visible :last-child").filter('div').map(function () {
-        return $(this).text();
-    });
-    $.each(headers, function (_, varName) {
-        $('#minmaxpivot').append($('<option>', {
-            value: varName,
-            text: varName
-        }));
-    });
+    let dropdown = $('#minmaxpivot');
+    Object.keys(ReportTweaks.headers.all).forEach((el) => dropdown.append(new Option(el, el)));
 
     // Add the search function
     $.fn.dataTable.ext.search.push(ReportTweaks.fn.rangeSearch);
@@ -111,7 +98,7 @@ ReportTweaks.fn.insertFilters = function () {
 Inserts buttons below the live filters or write back buttons if they
 are configured.
 */
-ReportTweaks.fn.insertWriteback = function () {
+ReportTweaks.fn.insertWriteback = () => {
     $("#report_div .d-print-none").eq(1).append(
         ReportTweaks.html.rtModalBtn.replace('BtnLabel',
             ReportTweaks.fn.htmlDecode(ReportTweaks.settings['_wb'].modalBtn)));
@@ -123,7 +110,7 @@ Gathers data for every row in preperation for a write back.
 Finds event and repeating instrument/instance if it exists.
 Also handles write value calculation, if any.
 */
-ReportTweaks.fn.packageData = function () {
+ReportTweaks.fn.packageData = () => {
     let writeArray = [];
     let table = $("#report_table").DataTable();
     let settings = ReportTweaks.settings['_wb'];
@@ -178,14 +165,14 @@ ReportTweaks.fn.packageData = function () {
 Pretty formatting for displaying the field name being written to
 in write back modal
 */
-ReportTweaks.fn.toTitleCase = function (str) {
+ReportTweaks.fn.toTitleCase = (str) => {
     return str.replace(/[_-]/g, ' ').replace(/(?:^|\s)\w/g, (match) => match.toUpperCase());
 }
 
 /*
 Safe decode for HTML strings sent from PHP
 */
-ReportTweaks.fn.htmlDecode = function (input) {
+ReportTweaks.fn.htmlDecode = (input) => {
     var doc = new DOMParser().parseFromString(input, "text/html");
     return doc.documentElement.textContent;
 }
@@ -194,7 +181,7 @@ ReportTweaks.fn.htmlDecode = function (input) {
 Checks report, configuration, and if valid then generates/displays
 the write back modal to user. 
 */
-ReportTweaks.fn.openModal = function () {
+ReportTweaks.fn.openModal = () => {
     let settings = ReportTweaks.settings['_wb'];
     let defaults = { icon: 'info', iconHtml: "<i class='fas fa-database'></i>" }
 
@@ -310,7 +297,7 @@ ReportTweaks.fn.openModal = function () {
 Datatables search function to find values between to points. Points
 can be alpha, numeric, or dates.
 */
-ReportTweaks.fn.rangeSearch = function (settings, data, dataIndex) {
+ReportTweaks.fn.rangeSearch = (settings, data, dataIndex) => {
 
     let min, max, field;
     let days = Number($("#filterDateRange").val());
@@ -352,12 +339,10 @@ Copy all visible data from the report including headers to the user's clipboard 
 tab deliminted sheet that can be easily pasted into excel or other software.
 Doesn't use Datatables API.
 */
-ReportTweaks.fn.copyData = function () {
+ReportTweaks.fn.copyData = () => {
 
     // Find all visible headers and get the field name
-    let headers = $("#report_table th:visible :last-child").filter('div').map(function () {
-        return $(this).text();
-    });
+    let headers = $("#report_table th:visible :last-child").filter('div').map((_, el) => $(el).text()).get();
 
     // For every cell organize it into our matrix/grid
     let data = $("#report_table td:visible").map(function (index, value) {
@@ -374,7 +359,7 @@ ReportTweaks.fn.copyData = function () {
 Copy all visible data from the report including headers to the user's clipboard as a 
 tab deliminted sheet that can be easily pasted into excel or other software.
 */
-ReportTweaks.fn.mergeRows = function () {
+ReportTweaks.fn.mergeRows = () => {
 
     // Gather common values
     let table = $("#report_table").DataTable();
@@ -514,7 +499,7 @@ ReportTweaks.fn.mergeRows = function () {
 Compares two arrays and if they can be merged without data loss 
 then do so, otherwise return false.
 */
-ReportTweaks.fn.mergeArray = function (arr1, arr2) {
+ReportTweaks.fn.mergeArray = (arr1, arr2) => {
     let target = [];
     $.each(arr1, function (index, arr1Value) {
         if (Object.values(ReportTweaks.headers.core).includes(index)) {
@@ -533,7 +518,7 @@ ReportTweaks.fn.mergeArray = function (arr1, arr2) {
 Remove rows from the table that contain no data except the record id
 and redcap generated fields.
 */
-ReportTweaks.fn.removeEmptyRows = function () {
+ReportTweaks.fn.removeEmptyRows = () => {
     let table = $("#report_table").DataTable();
     let remove = [];
     table.rows().every(function (rowIdx, tableLoop, rowLoop) {
@@ -550,7 +535,7 @@ ReportTweaks.fn.removeEmptyRows = function () {
 /*
 Toggle Column visibility for redcap_repeat_columns.
 */
-ReportTweaks.fn.toggleRepeatCols = function (show) {
+ReportTweaks.fn.toggleRepeatCols = (show) => {
     let table = $("#report_table").DataTable();
     let keys = Object.keys(ReportTweaks.headers.core);
     if (keys.includes('redcap_repeat_instrument')) {
@@ -565,7 +550,7 @@ ReportTweaks.fn.toggleRepeatCols = function (show) {
 /*
 Toggle Column visibility for event name column.
 */
-ReportTweaks.fn.toggleEventCol = function (show) {
+ReportTweaks.fn.toggleEventCol = (show) => {
     if (!Object.keys(ReportTweaks.headers.core).includes('redcap_event_name')) {
         return;
     }
@@ -578,7 +563,7 @@ ReportTweaks.fn.toggleEventCol = function (show) {
 CSS Tweaking function to resolve odd width behavior.
 Ideally this would be resolved via CSS and this func removed.
 */
-ReportTweaks.fn.updateTableWidth = function () {
+ReportTweaks.fn.updateTableWidth = () => {
     // Updates the width of the page Selector above the table OR the filter area when 1 page
     if ($(".report_pagenum_div").length) {
         $(".report_pagenum_div").css('width', $("#report_table").css('width'));
@@ -591,7 +576,7 @@ ReportTweaks.fn.updateTableWidth = function () {
 /*
 Gather and save current user settings to cookie
 */
-ReportTweaks.fn.saveCookie = function () {
+ReportTweaks.fn.saveCookie = () => {
     let localCookie = {};
     $("#rtCheckboxes input").each((_, el) => { localCookie[$(el).attr('id')] = $(el).is(':checked') });
     ReportTweaks.cookie[ReportTweaks.em.getUrlParameter('report_id')] = localCookie;
@@ -602,7 +587,7 @@ ReportTweaks.fn.saveCookie = function () {
 DOM Tweak for display of the "enable/disable" floating headers button
 for consistancy. 
 */
-ReportTweaks.fn.moveTableHeadersToggle = function () {
+ReportTweaks.fn.moveTableHeadersToggle = () => {
 
     // Wait for load
     if (!$("#FixedTableHdrsEnable").length) {
@@ -631,7 +616,7 @@ Wait for page to finish loading the report before deploying our tweaks.
 Full build out of the EM occurs here, we re-invoke if changing pages
 on a multipage report. 
 */
-ReportTweaks.fn.waitForLoad = function () {
+ReportTweaks.fn.waitForLoad = () => {
     if ($("#report_table thead").length == 0 ||
         !$.fn.DataTable.isDataTable("#report_table")) { // Still Loading
         window.requestAnimationFrame(ReportTweaks.fn.waitForLoad);
@@ -683,7 +668,7 @@ ReportTweaks.fn.waitForLoad = function () {
 /*
  Load the templates and start our load func
  */
-$(document).ready(function () {
+$(document).ready(() => {
     ReportTweaks.html = {};
     $.each($("template[id=ReportTweaks]").prop('content').children, (_, el) =>
         ReportTweaks.html[$(el).prop('id')] = $(el).prop('outerHTML'));
