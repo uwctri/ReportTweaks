@@ -318,7 +318,7 @@ ReportTweaks.fn.rangeSearch = (settings, data, dataIndex) => {
     }
 
     // Gather the data for the row
-    let datum = data[$("#report_table th").index($(`th:contains(${field})`))] || 0;
+    let datum = data[ReportTweaks.headers.all[field]?.index] || 0;
     datum = field == ReportTweaks.record_id ? datum.split(' ')[0] : datum;
 
     // Col data could be non-ymd
