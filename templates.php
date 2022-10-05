@@ -20,6 +20,9 @@
     <div style="margin:0 0 4px 20px;text-indent:-18px;">
         <input name="tweaks_writeback" type="checkbox"> <?=$this->tt('dash_writeback'); ?> <br/> <span id="openWriteBackModal"><i class="fas fa-cog ml-3" style="color:grey"></i><?=$this->tt('dash_config'); ?></span>
     </div>
+    <div style="margin:0 0 4px 20px;text-indent:-18px;">
+        <input name="tweaks_select" type="checkbox"> <?=$this->tt('dash_select'); ?>
+    </div>
 </div>
 
 <select id="rtDateRangeField" class="ml-2 fs12">

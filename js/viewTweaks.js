@@ -531,6 +531,123 @@ ReportTweaks.fn.removeEmptyRows = () => {
     table.draw();
 }
 
+
+ReportTweaks.fn.select = function () {
+    //Create a "copy selected records Button"
+    let copy_rec_div = document.createElement('div')
+    copy_rec_div.setAttribute('id', 'copy_rec_div_id')
+    let copy_rec_btn = document.createElement('button')
+    copy_rec_btn.innerHTML = "Copy selected records to clipboard"
+    copy_rec_btn.setAttribute('onclick', 'copy_rec_fn()')
+    copy_rec_btn.setAttribute('class', 'btn btn-primary btn-xs')
+    document.getElementById("this_report_title").appendChild(copy_rec_div)
+    document.getElementById("copy_rec_div_id").append(copy_rec_btn)
+
+
+    /* Define the WorkSpace.
+    1) working only in the report table
+    2) Define if the Header is on two rows or not
+    3) Define Table body elements
+    */
+    // 1) working only in the report table
+    tabella = document.getElementById('report_table')
+    tabbody = tabella.querySelector('tbody')
+
+    //Look for all 'tr' (now i'm interested only in the first 1 or 2)
+    placeholder = tabella.querySelectorAll('tr');
+    console.log(placeholder)
+
+    // 2) Define if the Header is on two rows or not
+    //set the tr header (can be hardcoded since is always the first line)
+    let headerCell = document.createElement('th');
+    //check if the head is on two rows or not (caused by checkboxes)
+    if (placeholder[0].firstElementChild.getAttribute('rowspan') === '2') {
+        headerCell.setAttribute('rowspan', '2')
+    }
+    headerCell.insertAdjacentHTML('beforeend', "<b>Select</b> ")
+    placeholder[0].prepend(headerCell)
+
+    // 3) set the table body elements
+    placeholder_tb = tabbody.querySelectorAll('tr');
+    console.log(placeholder_tb.length)
+
+    /*with the createElement method, it is needed to create single defined elements.
+    I cannot use querySelectorAll.createElement, it won't work.
+    I need an element called cella1, cella2, cella3...
+    To do that I need to define cella as array
+    Once created all these elements, I can bind them together (append)
+        */
+    let cella = [] // -td- element 
+    let input = [] // -checkbox- element
+    for (var i = 0; i < placeholder_tb.length; i++) {
+        //placeholder_tb[i].getElementsByClassName('rl').innerText
+        cella[i] = document.createElement('td');
+        input[i] = document.createElement('input');
+        input[i].setAttribute('type', 'checkbox')
+        input[i].setAttribute('onclick', 'give_color(this)')
+        input[i].setAttribute('class', 'tov_input')
+        input[i].setAttribute('value', '')
+        //Since with some reports layout is more difficult to retrieve the RecordID, I decided to hardcode it to the input tag, in this way it will be always progate with it.
+        if (placeholder_tb[i].querySelector('.rl') !== null) { // if record_id is in the list as variable
+            input[i].setAttribute('recordAttr', placeholder_tb[i].querySelector('.rl').innerText)
+        }
+        placeholder_tb[i].prepend(cella[i]) //All interno del node 'tr' ci aggiungo come primo elemento la cella
+        cella[i].appendChild(input[i])
+    }
+
+}
+
+//SELECTION AND HIGHLITH
+function give_color(x) {
+    //switcher btw green (rgb(172, 255, 200)) and originalClass
+    //x.parent.parent is the 'tr'
+
+    let trtag = x.parentElement.parentElement
+
+    if (trtag.style.backgroundColor !== 'rgb(172, 255, 200)') {
+        trtag.style.backgroundColor = 'rgb(172, 255, 200)'
+        //get original class and rename it (not renaming it will give to the class the priority over the style and the tr element will not get the wished color)
+        trtag.setAttribute('oldclass', trtag.className)
+        trtag.classList.remove(trtag.className)
+        x.value = '1'
+    } else {
+        let originalClassReset = trtag.getAttribute('oldclass')
+        console.log(originalClassReset);
+        trtag.setAttribute('class', originalClassReset);
+        trtag.style.backgroundColor = null;
+        x.value = ''
+    }
+}
+
+
+//CREATING RECORD LIST
+myselection_arr = []
+function copy_rec_fn() {
+    //It is important to reset the array (record_list) everytime the button is clicked, otherwise the new selected records will be appended to the old ones.
+    myselection_arr = []
+    //select only the input-checkbox that I've created
+    myselection = document.querySelectorAll('input[type="checkbox"][class="tov_input"][value="1"]')
+    console.log(myselection)
+    for (var i = 0; i < myselection.length; i++) {
+        let myselection_single = myselection[i].getAttribute('recordAttr')
+        myselection_arr.push(myselection_single)
+    }
+
+    //COPY TO CLIPBOARD (basically, is necessary to create an element an to put inside it the array and than copy the whole thing)
+    var dummycopy = document.createElement("textarea");
+    document.body.appendChild(dummycopy);
+    //Be careful if you use texarea. setAttribute('value', value), which works with "input" does not work with "textarea". – Eduard
+    dummycopy.value = myselection_arr;
+    dummycopy.select();
+    document.execCommand("copy");
+    document.body.removeChild(dummycopy);
+
+    if (placeholder_tb[i].querySelector('.rl') !== null) {
+        alert("The selected records are saved into the clipboard:" + "\r\n" + myselection_arr)
+    } else { alert("There aren't record_id displayed in this list!") }
+}
+
+
 /*
 Toggle Column visibility for redcap_repeat_columns.
 */
@@ -645,7 +762,10 @@ ReportTweaks.fn.waitForLoad = () => {
         ReportTweaks.fn.toggleEventCol(false);
         $("#hideEventCol").prop('disabled', true).prop('checked', false).parent().hide();
     }
-
+    if (ReportTweaks.settings.select) {
+        ReportTweaks.fn.select();
+    }
+  
     // Load Write Back Button config 
     if (ReportTweaks.settings.writeback) {
         ReportTweaks.fn.insertWriteback();
