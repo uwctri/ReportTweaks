@@ -319,5 +319,48 @@ class ReportTweaks extends AbstractExternalModule {
     */
     private function includeCSS() {
         echo "<link rel='stylesheet' href={$this->getURL('style.css')}>";
+
+    /*
+Query report's logic
+*/
+private function advanced_logic()
+{
+    //////////////////////////////
+    // SQL QUERY FOR ADVANCED LOGIC (start)
+    //////////////////////////////
+
+    //get report_id from the URL
+    $report_id = htmlspecialchars($_GET["report_id"]);
+    //it works with $this but not with $module (!?)
+    //parameterized query:
+    $result = $this->query(
+        '
+                            select advanced_logic
+                            from redcap_reports
+                            where
+                            report_id = ?
+      ',
+        [
+            $report_id,
+        ]
+    );
+
+    //$result is a mysqli_result object (see https://www.php.net/manual/en/class.mysqli-result.php) so you can access the rows:
+    while ($row = $result->fetch_assoc()) {
+        // echo "advanced logic: " . $row["advanced_logic"] . "<br>";
+        $adv_log = array_values($row)[0];
+    };
+    
+
+    //////////////////////////////
+    // SQL QUERY FOR ADVANCED LOGIC (end)
+    //////////////////////////////
+
+// save adv_log_var in an hidden html element (it will be retrieved in the js)
+//I tried to create this variable in another php file and pass it to a javascript through an ajax/XMLHttprequest, but I did not get it to work-->
+?>      <input type="hidden" id="adv_log_id" value="<?= htmlspecialchars($adv_log) ?>">
+
+<?php
+
     }
 }
