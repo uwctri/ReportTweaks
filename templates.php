@@ -15,13 +15,13 @@
             <input name="tweaks_removeEmpty" type="checkbox"> <?= $this->tt('dash_empty'); ?>
         </div>
         <div style="margin:0 0 4px 20px;text-indent:-18px;">
+            <input name="tweaks_reportLogic" type="checkbox"> <?= $this->tt('dash_report_logic'); ?>
+        </div>
+        <div style="margin:0 0 4px 20px;text-indent:-18px;">
             <input name="tweaks_dateRange" type="checkbox"> <?= $this->tt('dash_range'); ?>
         </div>
         <div style="margin:0 0 4px 20px;text-indent:-18px;">
             <input name="tweaks_writeback" type="checkbox"> <?= $this->tt('dash_writeback'); ?> <br /> <span id="openWriteBackModal"><i class="fas fa-cog ml-3" style="color:grey"></i><?= $this->tt('dash_config'); ?></span>
-        </div>
-        <div style="margin:0 0 4px 20px;text-indent:-18px;">
-            <input name="tweaks_reportLogic" type="checkbox"> <?= $this->tt('dash_report_logic'); ?>
         </div>
     </div>
 
