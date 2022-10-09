@@ -24,7 +24,7 @@ ReportTweaks.fn.insertCopyBtn = () => {
         $("#rtCopyDataBtn").css('float', 'left');
     }
     $("#rtCopyDataBtn").popover({
-        content: ReportTweaks.em.tt("copy_clipboard"),
+        content: ReportTweaks.em.tt("popover"),
         trigger: "hover"
     });
     $("#rtCopyDataBtn").on("click", ReportTweaks.fn.copyData);
@@ -103,6 +103,29 @@ ReportTweaks.fn.insertWriteback = () => {
         ReportTweaks.html.rtModalBtn.replace('BtnLabel',
             ReportTweaks.fn.htmlDecode(ReportTweaks.settings['_wb'].modalBtn)));
     $(".tweaks_writeback").on("click", ReportTweaks.fn.openModal);
+}
+
+// TODO
+ReportTweaks.fn.insertReportLogic = () => {
+    console.log(ReportTweaks.logic);
+    // //GET Advanced_logic var saved in php
+    // var adv_log = document.getElementById('adv_log_id').value
+
+    // //Create advanced logic
+    // let adv_log_div = document.createElement('div')
+    // adv_log_div.setAttribute('style', 'font-size:5px')
+    // var adv_log_html = "\
+    //   <p><button class='btn btn-primary btn-xs' type='button' data-bs-toggle='collapse' data-bs-target='#collapseExample' aria-expanded='false' aria-controls='collapseExample'> \
+    //  Show filter's advanced logic \
+    //  </button></p> \
+    //  </p> \
+    //  <div class='collapse' id='collapseExample'> \
+    //  <div class='card card-body p-1' style='width: 33%'> \
+    //  <p><code>" + adv_log + "</code></p>\
+    //  </div> \
+    //  </div>"
+    // adv_log_div.innerHTML = adv_log_html
+    // document.getElementById("this_report_title").appendChild(adv_log_div)
 }
 
 /*
@@ -531,26 +554,6 @@ ReportTweaks.fn.removeEmptyRows = () => {
     table.draw();
 }
 
-ReportTweaks.fn.adv_log = function () {
-    //GET Advanced_logic var saved in php
-    var adv_log = document.getElementById('adv_log_id').value
-    
-     //Create advanced logic
-     let adv_log_div = document.createElement('div')
-     adv_log_div.setAttribute('style','font-size:5px')
-     var adv_log_html = "\
-      <p><button class='btn btn-primary btn-xs' type='button' data-bs-toggle='collapse' data-bs-target='#collapseExample' aria-expanded='false' aria-controls='collapseExample'> \
-     Show filter's advanced logic \
-     </button></p> \
-     </p> \
-     <div class='collapse' id='collapseExample'> \
-     <div class='card card-body p-1' style='width: 33%'> \
-     <p><code>" + adv_log + "</code></p>\
-     </div> \
-     </div>"
-     adv_log_div.innerHTML = adv_log_html
-     document.getElementById("this_report_title").appendChild(adv_log_div)
-    }
 /*
 Toggle Column visibility for redcap_repeat_columns.
 */
@@ -661,15 +664,13 @@ ReportTweaks.fn.waitForLoad = () => {
     if (ReportTweaks.settings.removeEmpty) {
         ReportTweaks.fn.removeEmptyRows();
     }
+    if (ReportTweaks.settings.reportLogic) {
+        ReportTweaks.fn.insertReportLogic();
+    }
     if (!ReportTweaks.settings.includeEvent) {
         ReportTweaks.fn.toggleEventCol(false);
         $("#hideEventCol").prop('disabled', true).prop('checked', false).parent().hide();
     }
-    if (ReportTweaks.settings.adv_log) {
-        ReportTweaks.fn.adv_log();
-    }
-
-    // Load Write Back Button config 
     if (ReportTweaks.settings.writeback) {
         ReportTweaks.fn.insertWriteback();
     }
