@@ -4,6 +4,7 @@ namespace UWMadison\ReportTweaks;
 
 use ExternalModules\AbstractExternalModule;
 use REDCap;
+use DataExport;
 
 class ReportTweaks extends AbstractExternalModule
 {
@@ -40,9 +41,8 @@ class ReportTweaks extends AbstractExternalModule
                 $this->includeJs('editTweaks.js');
             } else {
                 $this->includeCookies();
-                $this->loadReportSorting($report_id);
+                $this->loadReportDetails($report_id);
                 $this->loadReportHeaders($report_id);
-                $this->loadReportLogic($report_id);
                 $this->includeJs('viewTweaks.js');
             }
         }
@@ -173,44 +173,28 @@ class ReportTweaks extends AbstractExternalModule
     }
 
     /*
-    Pass down sorting info for the report. The datatalbes 
-    API doesn't store inital sorting order.
+    Pass down sorting info and filter logic for the report. 
+    The datatalbes API doesn't store inital sorting order.
     */
-    private function loadReportSorting($report)
+    private function loadReportDetails($report)
     {
-        $sql = '
-            SELECT orderby_field1, orderby_field2, orderby_field3, 
-            orderby_sort1, orderby_sort2, orderby_sort3
-            FROM redcap_reports 
-            WHERE report_id = ?';
-        $result = $this->query($sql, [$report]);
-        $row = $result->fetch_assoc();
+        $details = DataExport::getReports($report);
+        $logic =  json_encode($details["advanced_logic"] ?? $details["limiter_logic"]);
+        $sort = [];
         foreach (range(1, 3) as $i) {
-            $orders[] = [
-                'field' => htmlentities($row["orderby_field$i"], ENT_QUOTES),
-                'sort' => htmlentities($row["orderby_sort$i"], ENT_QUOTES)
+            $sort[] = [
+                'field' => htmlentities($details["orderby_field$i"], ENT_QUOTES),
+                'sort' => htmlentities($details["orderby_sort$i"], ENT_QUOTES)
             ];
         }
-        $orders = json_encode($orders);
-        echo "<script>{$this->module_global}.sort = {$orders};</script>";
-    }
-
-    /*
-    Pass down the report's filter logic
-    */
-    private function loadReportLogic($report)
-    {
-        $sql = '
-            SELECT advanced_logic
-            FROM redcap_reports
-            WHERE report_id = ?';
-        $result = $this->query($sql, [$report]);
-        $logic = json_encode($result->fetch_assoc()["advanced_logic"] ?? "");
+        $sort = json_encode($sort);
         echo "<script>{$this->module_global}.logic = {$logic};</script>";
+        echo "<script>{$this->module_global}.sort = {$sort};</script>";
     }
 
     /*
-    Pass down a mapping of key headers on the report.
+    Pass down a mapping of report headers. Only way to do this in DataExport
+    is by getting a full copy of the report
     */
     private function loadReportHeaders($report)
     {
