@@ -205,7 +205,7 @@ class ReportTweaks extends AbstractExternalModule
             FROM redcap_reports
             WHERE report_id = ?';
         $result = $this->query($sql, [$report]);
-        $logic = $result->fetch_assoc()["advanced_logic"];
+        $logic = json_encode($result->fetch_assoc()["advanced_logic"] ?? "");
         echo "<script>{$this->module_global}.logic = {$logic};</script>";
     }
 
