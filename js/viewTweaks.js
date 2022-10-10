@@ -105,27 +105,16 @@ ReportTweaks.fn.insertWriteback = () => {
     $(".tweaks_writeback").on("click", ReportTweaks.fn.openModal);
 }
 
-// TODO
+/*
+Inserts a button along side the StatsCharts/ExportData/PrintPage/EditREport buttons.
+Toggles the display of the report's filter logic.
+*/
 ReportTweaks.fn.insertReportLogic = () => {
-    console.log(ReportTweaks.logic);
-    // //GET Advanced_logic var saved in php
-    // var adv_log = document.getElementById('adv_log_id').value
-
-    // //Create advanced logic
-    // let adv_log_div = document.createElement('div')
-    // adv_log_div.setAttribute('style', 'font-size:5px')
-    // var adv_log_html = "\
-    //   <p><button class='btn btn-primary btn-xs' type='button' data-bs-toggle='collapse' data-bs-target='#collapseExample' aria-expanded='false' aria-controls='collapseExample'> \
-    //  Show filter's advanced logic \
-    //  </button></p> \
-    //  </p> \
-    //  <div class='collapse' id='collapseExample'> \
-    //  <div class='card card-body p-1' style='width: 33%'> \
-    //  <p><code>" + adv_log + "</code></p>\
-    //  </div> \
-    //  </div>"
-    // adv_log_div.innerHTML = adv_log_html
-    // document.getElementById("this_report_title").appendChild(adv_log_div)
+    let text = ReportTweaks.logic
+    if (!text) return;
+    $("#report_div .d-print-none div").first().append(ReportTweaks.html.rtLogic.replace('BtnLabel', ReportTweaks.em.tt("logic")));
+    $("#this_report_title").after(ReportTweaks.html.rtLogicDisplay.replace('LogicText', text));
+    $("#rtLogic").on("click", () => $("#rtLogicDisplay").css("width", $("#report_table").css("width")).collapse('toggle'));
 }
 
 /*

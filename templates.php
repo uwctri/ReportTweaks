@@ -113,6 +113,10 @@
 
     <!-- View Report Page -->
 
+    <button id="rtLogic" class="report_btn jqbuttonmed ui-button ui-corner-all ui-widget" style="font-size:12px;"><i class="fas fa-filter fs10"></i> BtnLabel</button>
+
+    <div id="rtLogicDisplay" class="collapse mt-4 mb-4 p-2 border rounded" style="background: #d3d3d3"> <code>LogicText</code></div>
+
     <a href="#" id="rtCopyDataBtn" class="btn btn-secondary btn-sm mb-1" role="button"><i class="fas fa-clipboard"></i></a>
 
     <div id="rtFilters">
