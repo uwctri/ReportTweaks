@@ -1,7 +1,7 @@
 /*View Report Page*/
 
 #rtCopyDataBtn {
-    color: #aaa!important;
+    color: #aaa !important;
     background-color: #eee;
     border-color: #eee;
 }
@@ -21,8 +21,27 @@
     text-align: right;
 }
 
+.writeBackModal a {
+    font-size: 13px;
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+    text-align: center;
+}
+
+.writeBackModal a:hover {
+    color: inherit;
+}
+
+.writeBackModal .swal2-modal {
+    width: 800px
+}
+
 .writeBackModal {
     padding: 0;
+}
+
+.writeBackModal .nav-link.addNewWb {
+    color: #007bff;
 }
 
 #openWriteBackModal {

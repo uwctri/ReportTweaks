@@ -99,10 +99,26 @@ Inserts buttons below the live filters or write back buttons if they
 are configured.
 */
 ReportTweaks.fn.insertWriteback = () => {
-    $("#report_div .d-print-none").eq(1).append(
-        ReportTweaks.html.rtModalBtn.replace('BtnLabel',
-            ReportTweaks.fn.htmlDecode(ReportTweaks.settings['_wb'].modalBtn)));
-    $(".tweaks_writeback").on("click", ReportTweaks.fn.openModal);
+    const insert = (btnName) => {
+        $("#report_div .d-print-none").eq(1).append(
+            ReportTweaks.html.rtModalBtn.replace('BtnLabel',
+                ReportTweaks.fn.htmlDecode(btnName)).replace('BtnNumber',
+                    ReportTweaks.writeCount));
+    }
+    ReportTweaks.writeCount = 0;
+    if (ReportTweaks.settings['_wb'].modalBtn) {
+        ReportTweaks.writeCount = 1;
+        insert(ReportTweaks.settings['_wb'].modalBtn)
+    }
+    else if (ReportTweaks.settings['_wb'].length > 0) {
+        ReportTweaks.settings['_wb'].forEach((el) => {
+            if (el.modalBtn) {
+                insert(el.modalBtn)
+                ReportTweaks.writeCount += 1;
+            }
+        })
+    }
+    $(".tweaks_writeback").on("click", (el) => ReportTweaks.fn.openModal(el));
 }
 
 /*
@@ -193,9 +209,16 @@ ReportTweaks.fn.htmlDecode = (input) => {
 Checks report, configuration, and if valid then generates/displays
 the write back modal to user. 
 */
-ReportTweaks.fn.openModal = () => {
+ReportTweaks.fn.openModal = (event) => {
+    let btnNumber = $(event.currentTarget).data("btn-count");
     let settings = ReportTweaks.settings['_wb'];
-    let defaults = { icon: 'info', iconHtml: "<i class='fas fa-database'></i>" }
+
+    // Check for new settings format
+    if (!settings.modalBtn) {
+        settings = settings[btnNumber];
+    }
+
+    const defaults = { icon: 'info', iconHtml: "<i class='fas fa-database'></i>" }
 
     // No records exist on the report
     if (!$.fn.DataTable.isDataTable('#report_table') ||
@@ -229,7 +252,7 @@ ReportTweaks.fn.openModal = () => {
     }
 
     // Write back has occured once already
-    if (ReportTweaks.writeDone) {
+    if (ReportTweaks.writeDone && ReportTweaks.writeCount == 1) {
         Swal.fire({
             ...defaults,
             title: ReportTweaks.em.tt("modal_view_7"),

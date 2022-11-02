@@ -60,8 +60,10 @@ class ReportTweaks extends AbstractExternalModule
         // Escape 3 feilds that are html enabled 
         $new = json_decode($_POST['settings'], true);
         if (!empty($new['_wb'])) {
-            foreach (['footer', 'modalBtn', 'modalText'] as $html) {
-                $new['_wb'][$html] = REDCap::escapeHtml($new['_wb'][$html]);
+            foreach ($new['_wb'] as $index => $data) {
+                foreach (['footer', 'modalBtn', 'modalText'] as $html) {
+                    $new['_wb'][$index][$html] = REDCap::escapeHtml($data[$html]);
+                }
             }
         }
 

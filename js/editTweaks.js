@@ -47,6 +47,18 @@ Display the Write back config modal, load current settings & save settins on clo
 */
 ReportTweaks.fn.openModal = () => {
 
+    const addNewTab = () => {
+        let count = $(".wbModal .nav-link").length - 1;
+        $modal.find(".active, .show").removeClass("active show");
+        const $link = $(".wbModal .nav-link").last();
+        $link.clone().insertAfter($link.prev()).attr("data-tab-count", count).addClass("active").removeClass("addNewWb").text("---");
+        const $content = $(".wbModal .tab-pane").last();
+        const $clone = $content.clone();
+        $clone.find("[name^=writeType]").prop("name", `writeType_${count}`);
+        $clone.insertAfter($content).attr("data-tab-count", count).addClass("active show");
+        $(`.wbModal [data-tab-count=${count}]`).find("textarea, [type=text], select").val("").prop("checked", false);
+    }
+
     Swal.fire({
         title: ReportTweaks.em.tt('modal_edit_1'),
         html: ReportTweaks.html.rtModal,
@@ -56,37 +68,92 @@ ReportTweaks.fn.openModal = () => {
     }).then(() => {
 
         // Save settings on close, not written to DB
-        ReportTweaks.modalSettings = {};
-        $(".wbModal").find('input, select, textarea').each((_, input) => {
-            if (input.type == "checkbox") {
-                ReportTweaks.modalSettings[input.name] = input.checked;
-            } else if (input.type == "radio") {
-                if (input.checked)
-                    ReportTweaks.modalSettings[input.name] = input.value;
-            } else {
-                ReportTweaks.modalSettings[input.name] = input.value;
-            }
+        ReportTweaks.modalSettings = [];
+        $(".wbModal .tab-pane").each((index, el) => {
+            ReportTweaks.modalSettings.push({});
+            $(el).find('input, select, textarea').each((_, input) => {
+                if (input.type == "checkbox") {
+                    ReportTweaks.modalSettings[index][input.name] = input.checked;
+                } else if (input.type == "radio") {
+                    if (input.checked)
+                        ReportTweaks.modalSettings[index][input.name] = input.value;
+                } else {
+                    ReportTweaks.modalSettings[index][input.name] = input.value;
+                }
+            });
         });
     });
 
-    $("input[name=writeType]").on('change', (el) => $("#writeStaticRow").toggle(el.currentTarget.value == "static")).change();
+    const $modal = $(".wbModal");
+
+    // Reformat old to new wb settings
+    if (!ReportTweaks.modalSettings[0]) {
+        let tmp = ReportTweaks.modalSettings
+        delete ReportTweaks.modalSettings;
+        ReportTweaks.modalSettings = [];
+        ReportTweaks.modalSettings[0] = tmp;
+    }
+
+    // Setup Remove button
+    $modal.on("click", ".removeWb", (el) => {
+        let tab = $(el.currentTarget).closest(".tab-pane").data("tab-count");
+        if (tab == 0) {
+            $modal.find("[data-tab-count=0]").find("textarea, [type=text], select").val("").prop("checked", false).change();
+            $modal.find(".nav-link[data-tab-count=0]").text("---")
+            return;
+        }
+        $modal.find(".active, .show").removeClass("active show");
+        $modal.find("[data-tab-count=0]").addClass("active show");
+        $modal.find(`[data-tab-count=${tab}]`).remove();
+    });
+
+    // Setup add new btn click
+    $modal.on("click", ".addNewWb", addNewTab);
+
+    // Setup button labels
+    $modal.on("change", "input[name=modalBtn]", (el) => {
+        let tab = $(el.currentTarget).closest(".tab-pane").data("tab-count");
+        $(`.wbModal .nav-link[data-tab-count=${tab}]`).text(el.currentTarget.value);
+    });
+
+    // Setup button actions
+    $modal.on("click", ".nav-link", (el) => {
+        const tab = $(el.currentTarget).data("tab-count");
+        if (!isinteger(tab)) return;
+        $modal.find(".active, .show").removeClass("active show");
+        $(`.wbModal [data-tab-count=${tab}]`).addClass("active show");
+    });
+
+    // Form interactiviity
+    $modal.on("change", "input[name^=writeType]", (el) => $(el.currentTarget).closest(".row").next().toggle(el.currentTarget.value == "static"));
 
     // Generate options for the modal window
-    let dropdown = $("select[name=event]");
-    $("#filter_events option").each((_, el) => dropdown.append(new Option(el.text, el.value)));
-    dropdown = $("select[name=field]");
-    Object.keys(fieldForms).forEach((el) => dropdown.append(new Option(el, el)));
+    let modalEvent = $modal.find("select[name=event]");
+    $("#filter_events option").each((_, el) => modalEvent.append(new Option(el.text, el.value)));
+    let modalField = $modal.find("select[name=field]");
+    Object.keys(fieldForms).forEach((el) => modalField.append(new Option(el, el)));
+
+    // Modify the HTML if we have multiple tabs
+    if (ReportTweaks.modalSettings.length > 1) {
+        for (let i = 1; i < ReportTweaks.modalSettings.length; i++) {
+            addNewTab();
+        }
+        $(".wbModal input[name=modalBtn]").change();
+    }
 
     // Load Existing Writeback Settings
-    $.each(ReportTweaks.modalSettings, (key, setting) => {
-        $el = $(`.wbModal [name=${key}]`);
-        if ($el.attr('type') == "checkbox") {
-            $el.prop('checked', setting);
-        } else if ($el.attr('type') == "radio") {
-            $(`input[name=${key}][value=${setting}]`).prop('checked', true);
-        } else {
-            $el.val(setting);
-        }
+    $.each(ReportTweaks.modalSettings, (index, data) => {
+        $(`.wbModal .nav-link[data-tab-count=${index}]`).text(data["modalBtn"] || "")
+        $.each(data, (key, setting) => {
+            $el = $(`.wbModal [data-tab-count=${index}] [name^=${key}]`);
+            if ($el.attr('type') == "checkbox") {
+                $el.prop('checked', setting);
+            } else if ($el.attr('type') == "radio") {
+                $(`input[name^=${key}][value=${setting}]`).prop('checked', true).change();
+            } else {
+                $el.val(setting);
+            }
+        });
     });
 }
 
