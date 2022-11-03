@@ -138,10 +138,9 @@ Gathers data for every row in preperation for a write back.
 Finds event and repeating instrument/instance if it exists.
 Also handles write value calculation, if any.
 */
-ReportTweaks.fn.packageData = () => {
+ReportTweaks.fn.packageData = (settings) => {
     let writeArray = [];
     let table = $("#report_table").DataTable();
-    let settings = ReportTweaks.settings['_wb'];
     let counter = 0;
     let counterDay = new Date(today);
     let writeValue = settings.writeStatic;
@@ -291,7 +290,7 @@ ReportTweaks.fn.openModal = (event) => {
                 route: 'reportWrite',
                 field: settings.field,
                 overwrite: !!settings.overwrites, // encoded as "true" or "false" string
-                writeArray: JSON.stringify(ReportTweaks.fn.packageData()),
+                writeArray: JSON.stringify(ReportTweaks.fn.packageData(settings)),
                 redcap_csrf_token: ReportTweaks.csrf
             },
             error: (jqXHR, textStatus, errorThrown) => {
