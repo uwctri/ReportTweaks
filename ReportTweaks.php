@@ -166,7 +166,8 @@ class ReportTweaks extends AbstractExternalModule
             "csrf" => $this->getCSRFToken(),
             "router" => $this->getUrl('router.php'),
             "record_id" => REDCap::getRecordIdField(),
-            "settings" => $json
+            "settings" => $json,
+            "username" => ($this->getUser())->getUsername()
         ]);
 
         // Pass down to JS

@@ -97,6 +97,12 @@
                                         <?= $this->tt('modal_edit_10'); ?>
                                     </label>
                                 </div>
+                                <div class="radio">
+                                    <label for="writeType-username">
+                                        <input type="radio" name="writeType_0" value="username">
+                                        <?= $this->tt('modal_edit_13'); ?>
+                                    </label>
+                                </div>
                             </div>
                         </div>
                         <div class="row" style="display:none">

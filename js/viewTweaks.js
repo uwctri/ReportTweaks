@@ -148,6 +148,8 @@ ReportTweaks.fn.packageData = (settings) => {
 
     if (type == "today") {
         writeValue = today;
+    } else if (type == "username") {
+        writeValue = ReportTweaks.username;
     } else if (type == "ask") {
         writeValue = $(`#${settings.field}`).val();
     }
