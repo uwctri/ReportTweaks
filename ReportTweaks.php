@@ -64,6 +64,17 @@ class ReportTweaks extends AbstractExternalModule
                 foreach (['footer', 'modalBtn', 'modalText'] as $html) {
                     $new['_wb'][$index][$html] = REDCap::escapeHtml($data[$html]);
                 }
+                if (!empty($data["fieldMap"])) {
+                    $map = [];
+                    $lines = explode("\n", str_replace(" ", "", $data["fieldMap"]));
+                    foreach ($lines as $line) {
+                        $tmp = explode(",", $line);
+                        if (count($tmp) == 2) {
+                            $map[strtolower($tmp[0])] = strtolower($tmp[1]);
+                        }
+                    }
+                    $new['_wb'][$index]["fieldMap"] = $map;
+                }
             }
         }
 

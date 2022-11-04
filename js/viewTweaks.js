@@ -145,13 +145,14 @@ ReportTweaks.fn.packageData = (settings) => {
     let counterDay = new Date(today);
     let writeValue = settings.writeStatic;
     let type = settings.writeType;
+    let field = settings.fieldName || settings.field;
 
     if (type == "today") {
         writeValue = today;
     } else if (type == "username") {
         writeValue = ReportTweaks.username;
     } else if (type == "ask") {
-        writeValue = $(`#${settings.field}`).val();
+        writeValue = $(`#${field}`).val();
     }
 
     let writeIsInt = $.isNumeric(writeValue) && Math.floor(writeValue) == writeValue;
@@ -219,6 +220,7 @@ ReportTweaks.fn.openModal = (event) => {
         settings = settings[btnNumber];
     }
 
+    const field = settings.fieldName || settings.field;
     const defaults = { icon: 'info', iconHtml: "<i class='fas fa-database'></i>" }
 
     // No records exist on the report
@@ -243,7 +245,7 @@ ReportTweaks.fn.openModal = (event) => {
     }
 
     // Bad configuration
-    if (!settings.field) {
+    if (!field) {
         Swal.fire({
             ...defaults,
             title: ReportTweaks.em.tt("modal_view_5"),
@@ -266,8 +268,8 @@ ReportTweaks.fn.openModal = (event) => {
     let html = ReportTweaks.fn.htmlDecode(settings.modalText);
     if (settings.writeType == 'ask') {
         html += ReportTweaks.html.rtModalInput
-            .replace('LabelText', ReportTweaks.fn.toTitleCase(settings.field))
-            .replace('newID', settings.field) + '&nbsp;';
+            .replace('LabelText', ReportTweaks.fn.toTitleCase(field))
+            .replace('newID', field) + '&nbsp;';
     }
 
     // Display modal and handle response from server
@@ -290,7 +292,7 @@ ReportTweaks.fn.openModal = (event) => {
             url: ReportTweaks.router,
             data: {
                 route: 'reportWrite',
-                field: settings.field,
+                field: field,
                 overwrite: !!settings.overwrites, // encoded as "true" or "false" string
                 writeArray: JSON.stringify(ReportTweaks.fn.packageData(settings)),
                 redcap_csrf_token: ReportTweaks.csrf

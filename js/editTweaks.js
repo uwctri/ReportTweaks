@@ -55,6 +55,7 @@ ReportTweaks.fn.openModal = () => {
         const $content = $(".wbModal .tab-pane").last();
         const $clone = $content.clone();
         $clone.find("[name^=writeType]").prop("name", `writeType_${count}`);
+        $clone.find("[name^=fieldType]").prop("name", `fieldType_${count}`);
         $clone.insertAfter($content).attr("data-tab-count", count).addClass("active show");
         $(`.wbModal [data-tab-count=${count}]`).find("textarea, [type=text], select").val("").prop("checked", false);
     }
@@ -72,13 +73,14 @@ ReportTweaks.fn.openModal = () => {
         $(".wbModal .tab-pane").each((index, el) => {
             ReportTweaks.modalSettings.push({});
             $(el).find('input, select, textarea').each((_, input) => {
+                let name = input.name.split("_")[0];
                 if (input.type == "checkbox") {
-                    ReportTweaks.modalSettings[index][input.name] = input.checked;
+                    ReportTweaks.modalSettings[index][name] = input.checked;
                 } else if (input.type == "radio") {
                     if (input.checked)
-                        ReportTweaks.modalSettings[index][input.name] = input.value;
+                        ReportTweaks.modalSettings[index][name] = input.value;
                 } else {
-                    ReportTweaks.modalSettings[index][input.name] = input.value;
+                    ReportTweaks.modalSettings[index][name] = input.value;
                 }
             });
         });
@@ -126,11 +128,17 @@ ReportTweaks.fn.openModal = () => {
 
     // Form interactiviity
     $modal.on("change", "input[name^=writeType]", (el) => $(el.currentTarget).closest(".row").next().toggle(el.currentTarget.value == "static"));
+    $modal.on("change", "input[name^=fieldType]", (el) => {
+        $saticField = $(el.currentTarget).closest(".row").next();
+        $saticField.toggle(el.currentTarget.value == "static");
+        $saticField.next().toggle(el.currentTarget.value != "static");
+    });
+    $modal.on("change", "select[name=event]", (el) => $(el.currentTarget).closest(".row").next().toggle(el.currentTarget.value == "").change());
 
     // Generate options for the modal window
     let modalEvent = $modal.find("select[name=event]");
     $("#filter_events option").each((_, el) => modalEvent.append(new Option(el.text, el.value)));
-    let modalField = $modal.find("select[name=field]");
+    let modalField = $modal.find("select[name=fieldName]");
     Object.keys(fieldForms).forEach((el) => modalField.append(new Option(el, el)));
 
     // Modify the HTML if we have multiple tabs
@@ -150,6 +158,13 @@ ReportTweaks.fn.openModal = () => {
                 $el.prop('checked', setting);
             } else if ($el.attr('type') == "radio") {
                 $(`input[name^=${key}][value=${setting}]`).prop('checked', true).change();
+            } else if ($el.attr('name') == "fieldMap") {
+                let str = "";
+                Object.entries(setting).forEach((entry) => {
+                    const [key, value] = entry;
+                    str = str + `${key}, ${value}\n`;
+                });
+                $el.val(str.trim());
             } else {
                 $el.val(setting);
             }

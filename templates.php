@@ -44,19 +44,19 @@
                             <a class="removeWb"><i class="fa-solid fa-xmark"></i></a>
                         </div>
                         <div class="row">
-                            <label class="col-sm-4 control-label" for="modalBtn">Button Text</label>
+                            <label class="col-sm-4 control-label" for="modalBtn"><?= $this->tt('modal_edit_14'); ?></label>
                             <div class="col-sm-8">
                                 <input name="modalBtn" type="text" placeholder="<?= $this->tt('modal_edit_2'); ?>" class="form-control input-md">
                             </div>
                         </div>
                         <div class="row">
-                            <label class="col-sm-4 control-label" for="modalText">Popup Message</label>
+                            <label class="col-sm-4 control-label" for="modalText"><?= $this->tt('modal_edit_15'); ?></label>
                             <div class="col-sm-8">
                                 <textarea class="form-control" name="modalText" placeholder="<?= $this->tt('modal_edit_3'); ?>"></textarea>
                             </div>
                         </div>
                         <div class="row">
-                            <label class="col-sm-4 control-label" for="footer">Footer Text</label>
+                            <label class="col-sm-4 control-label" for="footer"><?= $this->tt('modal_edit_16'); ?></label>
                             <div class="col-sm-8">
                                 <textarea class="form-control" name="footer"></textarea>
                             </div>
@@ -70,10 +70,33 @@
                             </div>
                         </div>
                         <div class="row">
-                            <label class="col-sm-4 control-label" for="field"><?= $this->tt('modal_edit_6'); ?></label>
+                            <label class="col-md-4 control-label" for="fieldType"><?= $this->tt('modal_edit_17'); ?></label>
+                            <div class="col-md-8 text-left">
+                                <div class="radio">
+                                    <label for="fieldType-static">
+                                        <input type="radio" name="fieldType_0" value="static" checked="checked">
+                                        <?= $this->tt('modal_edit_18'); ?>
+                                    </label>
+                                </div>
+                                <div class="radio">
+                                    <label for="fieldType-map">
+                                        <input type="radio" name="fieldType_0" value="map">
+                                        <?= $this->tt('modal_edit_19'); ?>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <label class="col-sm-4 control-label" for="fieldName"><?= $this->tt('modal_edit_6'); ?></label>
                             <div class="col-sm-8">
-                                <select name="field" class="form-control">
+                                <select name="fieldName" class="form-control">
                                 </select>
+                            </div>
+                        </div>
+                        <div class="row" style="display:none">
+                            <label class="col-sm-4 control-label" for="fieldMap"><?= $this->tt('modal_edit_20'); ?></label>
+                            <div class="col-sm-8">
+                                <textarea class="form-control" name="fieldMap" placeholder="<?= $this->tt('modal_edit_21'); ?>"></textarea>
                             </div>
                         </div>
                         <div class="row">
