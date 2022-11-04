@@ -139,7 +139,7 @@ Finds event and repeating instrument/instance if it exists.
 Also handles write value calculation, if any.
 */
 ReportTweaks.fn.packageData = (settings) => {
-    let writeArray = [];
+    let writeObject = {};
     let table = $("#report_table").DataTable();
     let counter = 0;
     let counterDay = new Date(today);
@@ -180,15 +180,20 @@ ReportTweaks.fn.packageData = (settings) => {
             instrument = "";
             instance = "";
         }
-        writeArray.push({
-            'record': record,
-            'event': eventid, // Can be event id or display name
-            'instrument': instrument, // Always display name, mapped server side
-            'instance': instance,
-            'val': writeValue,
+        if (settings.fieldType == "map") {
+            field = settings.fieldMap[eventid] || field;
+        }
+        writeObject[field] ??= [];
+        writeObject[field].push({
+            record: record,
+            event: eventid, // Can be event id or display name
+            instrument: instrument, // Always display name, mapped server side
+            instance: instance,
+            val: writeValue,
+            field: field
         });
     });
-    return writeArray;
+    return writeObject;
 }
 
 /*
@@ -245,9 +250,9 @@ ReportTweaks.fn.openModal = (event) => {
     }
 
     // Bad configuration
-    if (!field) {
+    if (!field && [null, "static"].includes(settings.fieldType)) {
         Swal.fire({
-            ...defaults,
+            icon: 'error',
             title: ReportTweaks.em.tt("modal_view_5"),
             html: ReportTweaks.em.tt("modal_view_6"),
         });
@@ -292,7 +297,6 @@ ReportTweaks.fn.openModal = (event) => {
             url: ReportTweaks.router,
             data: {
                 route: 'reportWrite',
-                field: field,
                 overwrite: !!settings.overwrites, // encoded as "true" or "false" string
                 writeArray: JSON.stringify(ReportTweaks.fn.packageData(settings)),
                 redcap_csrf_token: ReportTweaks.csrf

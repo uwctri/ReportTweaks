@@ -91,56 +91,60 @@ class ReportTweaks extends AbstractExternalModule
         // Gather info
         $writeBackData = (array) json_decode($_POST['writeArray'], true);
         $pid = $_GET['pid'];
-        $field = $_POST['field'];
         $overwrite = json_decode($_POST['overwrite']);
         $eventMap = $this->makeEventMap($pid);
         $instrumentMap = $this->makeInstrumentMap();
         $writeArray = [];
 
-        // Get User rights to check if we can write to the field
-        $user = $this->getUser()->getUsername();
-        $rights = REDCap::getUserRights($user)[$user]['forms'];
-        $form = REDCap::getDataDictionary($pid, 'array')[$field]['form_name'];
-        if ($rights[$form] != "1") { // 1 is View&Edit, 0 is Hidden, 2 is View Only
-            echo json_encode([
-                "form" => $form,
-                "warnings" => [$this->tt('warning_1')],
-                "errors" => []
-            ]);
-            return;
-        }
+        // Data is broken into groups based on what fields we are writing to
+        foreach ($writeBackData as $fieldName => $dataList) {
 
-        // Loop over every line of the report we got back
-        foreach ($writeBackData as $data) {
-
-            // If we were sent a display name, swap it to an id (or internal instrument name)
-            $event = is_numeric($data['event']) ? $data['event'] : $eventMap[$data['event']];
-            $instrument = $instrumentMap[$data['instrument']] ?? "";
-            $record = $data['record'];
-            $instance = $data['instance'] ?? "";
-
-            // Make sure field exists on event, shouldn't be an issue
-            if (empty($event) || !in_array($field, REDCap::getValidFieldsByEvents($pid, $event))) {
-                continue;
+            // Get User rights to check if we can write to the field
+            $field = $fieldName;
+            $user = $this->getUser()->getUsername();
+            $rights = REDCap::getUserRights($user)[$user]['forms'];
+            $form = REDCap::getDataDictionary($pid, 'array')[$field]['form_name'];
+            if ($rights[$form] != "1") { // 1 is View&Edit, 0 is Hidden, 2 is View Only
+                echo json_encode([
+                    "form" => $form,
+                    "warnings" => [$this->tt('warning_1')],
+                    "errors" => []
+                ]);
+                return;
             }
 
-            // If no overwritting then make sure we don't blow away data
-            if (!$overwrite) {
-                $existingData = REDCap::getData($pid, 'array', $record, $field, $event)[$record];
-                if (!empty($instrument)) {
-                    if (!empty($existingData["repeat_instances"][$event][$instrument][$instance][$field]))
-                        continue; // Don't do write
-                } elseif (!empty($existingData[$event][$field])) {
-                    continue; // Don't do write
+            // Loop over every line of the report we got back
+            foreach ($dataList as $data) {
+
+                // If we were sent a display name, swap it to an id (or internal instrument name)
+                $event = is_numeric($data['event']) ? $data['event'] : $eventMap[$data['event']];
+                $instrument = $instrumentMap[$data['instrument']] ?? "";
+                $record = $data['record'];
+                $instance = $data['instance'] ?? "";
+
+                // Make sure field exists on event, shouldn't be an issue
+                if (empty($event) || !in_array($field, REDCap::getValidFieldsByEvents($pid, $event))) {
+                    continue;
                 }
-            }
 
-            // Set value on repeat or single instrument
-            if (!empty($instrument)) {
-                // Note: Field might not be on instrument if malicious, saveData will catch this though
-                $writeArray[$record]["repeat_instances"][$event][$instrument][$instance][$field] = $data['val'];
-            } else {
-                $writeArray[$record][$event][$field] = $data['val'];
+                // If no overwritting then make sure we don't blow away data
+                if (!$overwrite) {
+                    $existingData = REDCap::getData($pid, 'array', $record, $field, $event)[$record];
+                    if (!empty($instrument)) {
+                        if (!empty($existingData["repeat_instances"][$event][$instrument][$instance][$field]))
+                            continue; // Don't do write
+                    } elseif (!empty($existingData[$event][$field])) {
+                        continue; // Don't do write
+                    }
+                }
+
+                // Set value on repeat or single instrument
+                if (!empty($instrument)) {
+                    // Note: Field might not be on instrument if malicious, saveData will catch this though
+                    $writeArray[$record]["repeat_instances"][$event][$instrument][$instance][$field] = $data['val'];
+                } else {
+                    $writeArray[$record][$event][$field] = $data['val'];
+                }
             }
         }
 

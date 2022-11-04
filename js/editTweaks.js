@@ -153,6 +153,7 @@ ReportTweaks.fn.openModal = () => {
     $.each(ReportTweaks.modalSettings, (index, data) => {
         $(`.wbModal .nav-link[data-tab-count=${index}]`).text(data["modalBtn"] || "")
         $.each(data, (key, setting) => {
+            key = key == "field" ? "fieldName" : key;
             $el = $(`.wbModal [data-tab-count=${index}] [name^=${key}]`);
             if ($el.attr('type') == "checkbox") {
                 $el.prop('checked', setting);
