@@ -181,6 +181,7 @@ ReportTweaks.fn.packageData = (settings) => {
             instance = "";
         }
         if (settings.fieldType == "map") {
+            // TODO we need a map from eventID->name so we can map ->field
             field = settings.fieldMap[eventid] || field;
         }
         writeObject[field] ??= [];

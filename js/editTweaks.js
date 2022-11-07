@@ -167,7 +167,7 @@ ReportTweaks.fn.openModal = () => {
                 });
                 $el.val(str.trim());
             } else {
-                $el.val(setting);
+                $el.val(setting).change();
             }
         });
     });
