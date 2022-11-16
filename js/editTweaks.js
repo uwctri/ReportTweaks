@@ -154,11 +154,12 @@ ReportTweaks.fn.openModal = () => {
         $(`.wbModal .nav-link[data-tab-count=${index}]`).text(data["modalBtn"] || "")
         $.each(data, (key, setting) => {
             key = key == "field" ? "fieldName" : key;
-            $el = $(`.wbModal [data-tab-count=${index}] [name^=${key}]`);
+            $tab = $(`.wbModal [data-tab-count=${index}]`);
+            $el = $tab.find(`[name^=${key}]`);
             if ($el.attr('type') == "checkbox") {
                 $el.prop('checked', setting);
             } else if ($el.attr('type') == "radio") {
-                $(`input[name^=${key}][value=${setting}]`).prop('checked', true).change();
+                $tab.find(`[value=${setting}]`).prop('checked', true).change();
             } else if ($el.attr('name') == "fieldMap") {
                 let str = "";
                 Object.entries(setting).forEach((entry) => {
