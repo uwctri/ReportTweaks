@@ -195,13 +195,13 @@
                 <span class="font-weight-bold"><?= $this->tt('live_date'); ?>: </span>
                 <select id='filterDateRange'>
                     <option value="-1"></option>
-                    <option value="1">Yesterday</option>
-                    <option value="7">Past Week</option>
-                    <option value="14">Past 2 Weeks</option>
-                    <option value="30">Past Month</option>
-                    <option value="60">Past 2 Months</option>
-                    <option value="90">Past 3 Months</option>
-                    <option value="365">Past Year</option>
+                    <option value="1"><?= $this->tt('dropdown_1'); ?></option>
+                    <option value="7"><?= $this->tt('dropdown_7'); ?></option>
+                    <option value="14"><?= $this->tt('dropdown_14'); ?></option>
+                    <option value="30"><?= $this->tt('dropdown_30'); ?></option>
+                    <option value="60"><?= $this->tt('dropdown_60'); ?></option>
+                    <option value="90"><?= $this->tt('dropdown_90'); ?></option>
+                    <option value="365"><?= $this->tt('dropdown_365'); ?></option>
                 </select>
             </div>
         </div>
