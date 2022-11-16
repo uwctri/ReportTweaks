@@ -97,6 +97,9 @@ ReportTweaks.fn.insertFilters = () => {
 /*
 Inserts buttons below the live filters or write back buttons if they
 are configured.
+Undocumented behavior - Skip buttons with name "^" as it means that
+the action of that button should trigger when the previous one is
+clicked.
 */
 ReportTweaks.fn.insertWriteback = () => {
     const insert = (btnName) => {
@@ -106,13 +109,14 @@ ReportTweaks.fn.insertWriteback = () => {
                     ReportTweaks.writeCount));
     }
     ReportTweaks.writeCount = 0;
-    if (ReportTweaks.settings['_wb'].modalBtn) {
+    const settings = ReportTweaks.settings['_wb'];
+    if (settings.modalBtn) {
         ReportTweaks.writeCount = 1;
-        insert(ReportTweaks.settings['_wb'].modalBtn)
+        insert(settings.modalBtn)
     }
-    else if (ReportTweaks.settings['_wb'].length > 0) {
-        ReportTweaks.settings['_wb'].forEach((el) => {
-            if (el.modalBtn) {
+    else if (settings.length > 0) {
+        settings.forEach((el) => {
+            if (el.modalBtn && el.modalBtn != "^") {
                 insert(el.modalBtn)
                 ReportTweaks.writeCount += 1;
             }
@@ -220,10 +224,12 @@ the write back modal to user.
 ReportTweaks.fn.openModal = (event) => {
     let btnNumber = $(event.currentTarget).data("btn-count");
     let settings = ReportTweaks.settings['_wb'];
+    let newFormat = false;
 
     // Check for new settings format
     if (!settings.modalBtn) {
         settings = settings[btnNumber];
+        newFormat = true;
     }
 
     const field = settings.fieldName || settings.field;
@@ -290,8 +296,17 @@ ReportTweaks.fn.openModal = (event) => {
         cancelButtonColor: '#d33',
         confirmButtonText: ReportTweaks.em.tt("modal_view_10")
     }).then((result) => {
-        if (!result.value) {
-            return;
+        if (!result.value) return;
+        let payload = ReportTweaks.fn.packageData(settings);
+        if (newFormat) {
+            for (let i = btnNumber + 1; i < ReportTweaks.settings['_wb'].length; i++) {
+                let local = ReportTweaks.settings['_wb'][i];
+                if (local.modalBtn == "^") {
+                    payload = { ...payload, ...ReportTweaks.fn.packageData(local) }
+                    continue
+                }
+                break;
+            }
         }
         $.ajax({
             method: 'POST',
@@ -299,7 +314,7 @@ ReportTweaks.fn.openModal = (event) => {
             data: {
                 route: 'reportWrite',
                 overwrite: !!settings.overwrites, // encoded as "true" or "false" string
-                writeArray: JSON.stringify(ReportTweaks.fn.packageData(settings)),
+                writeArray: JSON.stringify(payload),
                 redcap_csrf_token: ReportTweaks.csrf
             },
             error: (jqXHR, textStatus, errorThrown) => {
