@@ -79,6 +79,14 @@ ReportTweaks.fn.openModal = () => {
                 } else if (input.type == "radio") {
                     if (input.checked)
                         ReportTweaks.modalSettings[index][name] = input.value;
+                } else if (name == "fieldMap") {
+                    if (!input.value) return;
+                    let newSave = {};
+                    input.value.split("\n").forEach((el) => {
+                        let [k, v] = el.split(',');
+                        newSave[k.trim()] = v.trim()
+                    });
+                    ReportTweaks.modalSettings[index][name] = newSave;
                 } else {
                     ReportTweaks.modalSettings[index][name] = input.value;
                 }
@@ -133,7 +141,6 @@ ReportTweaks.fn.openModal = () => {
         $saticField.toggle(el.currentTarget.value == "static");
         $saticField.next().toggle(el.currentTarget.value != "static");
     });
-    $modal.on("change", "select[name=event]", (el) => $(el.currentTarget).closest(".row").next().toggle(el.currentTarget.value == "").change());
 
     // Generate options for the modal window
     let modalEvent = $modal.find("select[name=event]");

@@ -176,7 +176,7 @@ ReportTweaks.fn.packageData = (settings) => {
 
         const data = this.data();
         const record = $(data[ReportTweaks.headers.core['record_id']])[0].text;
-        let eventid = data[ReportTweaks.headers.core['redcap_event_name']] || "";
+        let eventid = ReportTweaks.eventMap[data[ReportTweaks.headers.core['redcap_event_name']]] || "";
         let instrument = data[ReportTweaks.headers.core['redcap_repeat_instrument']] || "";
         let instance = data[ReportTweaks.headers.core['redcap_repeat_instance']] || "";
         if (settings.event) {
@@ -185,13 +185,12 @@ ReportTweaks.fn.packageData = (settings) => {
             instance = "";
         }
         if (settings.fieldType == "map") {
-            // TODO we need a map from eventID->name so we can map ->field
             field = settings.fieldMap[eventid] || field;
         }
         writeObject[field] ??= [];
         writeObject[field].push({
             record: record,
-            event: eventid, // Can be event id or display name
+            event: eventid,
             instrument: instrument, // Always display name, mapped server side
             instance: instance,
             val: writeValue,

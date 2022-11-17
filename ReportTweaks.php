@@ -92,7 +92,6 @@ class ReportTweaks extends AbstractExternalModule
         $writeBackData = (array) json_decode($_POST['writeArray'], true);
         $pid = $_GET['pid'];
         $overwrite = json_decode($_POST['overwrite']);
-        $eventMap = $this->makeEventMap($pid);
         $instrumentMap = $this->makeInstrumentMap();
         $writeArray = [];
 
@@ -117,7 +116,7 @@ class ReportTweaks extends AbstractExternalModule
             foreach ($dataList as $data) {
 
                 // If we were sent a display name, swap it to an id (or internal instrument name)
-                $event = is_numeric($data['event']) ? $data['event'] : $eventMap[$data['event']];
+                $event = $data['event'];
                 $instrument = $instrumentMap[$data['instrument']] ?? "";
                 $record = $data['record'];
                 $instance = $data['instance'] ?? "";
@@ -182,7 +181,8 @@ class ReportTweaks extends AbstractExternalModule
             "router" => $this->getUrl('router.php'),
             "record_id" => REDCap::getRecordIdField(),
             "settings" => $json,
-            "username" => ($this->getUser())->getUsername()
+            "username" => ($this->getUser())->getUsername(),
+            "eventMap" => $this->makeEventMap()
         ]);
 
         // Pass down to JS
@@ -304,11 +304,11 @@ class ReportTweaks extends AbstractExternalModule
     Util functions used by writeback. Creates a map of event display
     names to event ids.
     */
-    private function makeEventMap($project_id)
+    private function makeEventMap()
     {
         $map = array_flip(REDCap::getEventNames(false));
         if (empty($map)) {
-            $map[""] = reset(array_keys(reset(REDCap::getData($project_id, 'array', null, REDCap::getRecordIdField()))));
+            $map[""] = reset(array_keys(reset(REDCap::getData('array', null, REDCap::getRecordIdField()))));
         }
         return $map;
     }
