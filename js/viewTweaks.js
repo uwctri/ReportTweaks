@@ -176,16 +176,16 @@ ReportTweaks.fn.packageData = (settings) => {
 
         const data = this.data();
         const record = $(data[ReportTweaks.headers.core['record_id']])[0].text;
-        let eventid = ReportTweaks.eventMap[data[ReportTweaks.headers.core['redcap_event_name']]] || "";
-        let instrument = data[ReportTweaks.headers.core['redcap_repeat_instrument']] || "";
-        let instance = data[ReportTweaks.headers.core['redcap_repeat_instance']] || "";
+        let eventid = ReportTweaks.eventMap[data[ReportTweaks.headers.core['redcap_event_name']]] ?? "";
+        let instrument = data[ReportTweaks.headers.core['redcap_repeat_instrument']] ?? "";
+        let instance = data[ReportTweaks.headers.core['redcap_repeat_instance']] ?? "";
+        if (settings.fieldType == "map") {
+            field = settings.fieldMap[ReportTweaks.eventMap[eventid]] ?? field;
+        }
         if (settings.event) {
             eventid = settings.event;
             instrument = "";
             instance = "";
-        }
-        if (settings.fieldType == "map") {
-            field = settings.fieldMap[eventid] || field;
         }
         writeObject[field] ??= [];
         writeObject[field].push({
