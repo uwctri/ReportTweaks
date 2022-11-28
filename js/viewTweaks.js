@@ -2,6 +2,7 @@ $(document).ready(() => {
     let templates = {};
     const isMdyDate = RegExp('[0-9]{2}-[0-9]{2}-[0-9]{4}');
     const module = ExternalModules.UWMadison.ReportTweaks;
+    const localStorageKey = "RedcapReportTweaks";
 
     /*
     Utility function to add days to a date
@@ -633,11 +634,14 @@ $(document).ready(() => {
     /*
     Update the current report settings and return them
     */
-    const updateStorage = () => {
-        let storage = JSON.parse(localStorage.getItem("RedcapReportTweaks") || '{}');
+    const updateStorage = (event = false) => {
+        let storage = JSON.parse(localStorage.getItem(localStorageKey) || '{}');
         const report = module.getUrlParameter('report_id');
-        $("#rtCheckboxes input").each((_, el) => storage[report][$(el).attr('id')] = $(el).is(':checked'));
-        localStorage.setItem("RedcapReportTweaks", JSON.stringify(storage));
+        storage[report] ??= {};
+        if (event) { // if called as an event
+            $("#rtCheckboxes input").each((_, el) => { storage[report][$(el).attr('id')] = $(el).is(':checked') });
+            localStorage.setItem(localStorageKey, JSON.stringify(storage));
+        }
         return storage[report];
     }
 
@@ -717,19 +721,11 @@ $(document).ready(() => {
         $("#rtCheckboxes input").on('click', updateStorage);
     }
 
-    // Load HTML Tempates and start load
-    $.each($("template[id=ReportTweaks]").prop('content').children, (_, el) =>
-        templates[$(el).prop('id')] = $(el).prop('outerHTML'));
-    waitForLoad();
-});
-
-/*
-Watch for state history change (used on multi-page reports)
-We can't avoid polling due to page changing using history push state
-*/
-let oldHref = document.location.href;
-window.onload = () => {
-    let bodyList = document.querySelector("body");
+    /*
+    Watch for state history change (used on multi-page reports)
+    We can't avoid polling due to page changing using history push state
+    */
+    let oldHref = document.location.href;
     let observer = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
             if (oldHref != document.location.href) {
@@ -738,8 +734,13 @@ window.onload = () => {
             }
         });
     });
-    observer.observe(bodyList, {
+    observer.observe(document.querySelector("body"), {
         childList: true,
         subtree: true
     });
-};
+
+    // Load HTML Tempates and start load
+    $.each($("template[id=ReportTweaks]").prop('content').children, (_, el) =>
+        templates[$(el).prop('id')] = $(el).prop('outerHTML'));
+    waitForLoad();
+});
