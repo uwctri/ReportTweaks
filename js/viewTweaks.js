@@ -637,7 +637,7 @@ $(document).ready(() => {
     const updateStorage = (event = false) => {
         let storage = JSON.parse(localStorage.getItem(localStorageKey) || '{}');
         const report = module.getUrlParameter('report_id');
-        storage[report] ??= {};
+        storage[report] ??= location.href.includes("ctri-redcap.dom.wisc.edu") ? { hideEventCol: true, hideRepeatCols: true } : {};
         if (event) { // if called as an event
             $("#rtCheckboxes input").each((_, el) => { storage[report][$(el).attr('id')] = $(el).is(':checked') });
             localStorage.setItem(localStorageKey, JSON.stringify(storage));
