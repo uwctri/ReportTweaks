@@ -9,7 +9,7 @@
         {
             "name": "Adam Nunez",
             "email": "Adam.Nunez@ctri.wisc.edu",
-            "institution": "UW Madison - Center for Tobacco Research and Intervention "
+            "institution": "UW Madison - Center for Tobacco Research and Intervention"
         }
     ],
     "permissions": [
@@ -19,7 +19,7 @@
     "project-settings": [
         {
             "key": "info",
-            "name": "This module is configured via the edit report screen. Individual user configuration is saved via a cookie on the user's browser.<br><br><a>Click here to view all saved configuration.</a>",
+            "name": "This module is configured via the edit report screen. Individual user configuration is saved in the user's local storage.<br><br><a>Click here to view all saved configuration.</a>",
             "tt_name": "module_info",
             "type": "descriptive"
         },

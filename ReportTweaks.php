@@ -9,7 +9,7 @@ use DataExport;
 class ReportTweaks extends AbstractExternalModule
 {
 
-    private $module_global = 'ReportTweaks';
+    private $jsGlobal = "";
     private $defaultSettings = ['includeEvent' => true];
 
     /*
@@ -17,7 +17,6 @@ class ReportTweaks extends AbstractExternalModule
     */
     public function redcap_every_page_top($project_id)
     {
-
         // Bail if user isn't logged in
         if (!defined("USERID")) {
             return;
@@ -27,7 +26,7 @@ class ReportTweaks extends AbstractExternalModule
 
         // Custom Config page
         if ($this->isPage('ExternalModules/manager/project.php') && $project_id) {
-            $this->includePrefix();
+            $this->loadSettings();
             $this->includeJs('config.js');
         }
 
@@ -40,7 +39,6 @@ class ReportTweaks extends AbstractExternalModule
                 $this->includeDateFields();
                 $this->includeJs('editTweaks.js');
             } else {
-                $this->includeCookies();
                 $this->loadReportDetails($report_id);
                 $this->loadReportHeaders($report_id);
                 $this->includeJs('viewTweaks.js');
@@ -81,7 +79,7 @@ class ReportTweaks extends AbstractExternalModule
         $writeBackData = (array) json_decode($_POST['writeArray'], true);
         $pid = $_GET['pid'];
         $overwrite = json_decode($_POST['overwrite']);
-        $instrumentMap = $this->makeInstrumentMap();
+        $instrumentMap = array_flip(REDCap::getInstrumentNames());
         $writeArray = [];
 
         // Data is broken into groups based on what fields we are writing to
@@ -152,31 +150,35 @@ class ReportTweaks extends AbstractExternalModule
     Inits the ReportTweaks global and loads the settings for
     a report ID. Also packs the Redcap JS object
     */
-    private function loadSettings($report)
+    private function loadSettings($report = Null)
     {
-
         // Setup Redcap JS object
         $this->initializeJavascriptModuleObject();
         $this->tt_transferToJavascriptModuleObject();
+        $this->jsGlobal = $this->getJavascriptModuleObjectName();
+        $data = ["prefix" => $this->getPrefix()];
 
-        // Get the EM's settings
-        $json = ((array)json_decode($this->getProjectSetting('json')))[$report];
-        $json = empty($json) ? $this->defaultSettings : $json;
+        if (!empty($report)) {
 
-        // Organize the strucutre
-        $data = json_encode([
-            "isLong" => REDCap::isLongitudinal(),
-            "csrf" => $this->getCSRFToken(),
-            "router" => $this->getUrl('router.php'),
-            "record_id" => REDCap::getRecordIdField(),
-            "settings" => $json,
-            "username" => ($this->getUser())->getUsername(),
-            "eventMap" => $this->makeEventMap()
-        ]);
+            // Get the EM's settings
+            $json = ((array)json_decode($this->getProjectSetting('json')))[$report];
+            $json = empty($json) ? $this->defaultSettings : $json;
+
+            // Organize the strucutre
+            $data = array_merge($data, [
+                "isLong" => REDCap::isLongitudinal(),
+                "csrf" => $this->getCSRFToken(),
+                "router" => $this->getUrl('router.php'),
+                "record_id" => REDCap::getRecordIdField(),
+                "settings" => $json,
+                "username" => ($this->getUser())->getUsername(),
+                "eventMap" => $this->makeEventMap()
+            ]);
+        }
 
         // Pass down to JS
-        echo "<script>var {$this->module_global} = {$data};</script>";
-        echo "<script> {$this->module_global}.em = {$this->getJavascriptModuleObjectName()}</script>";
+        $data = json_encode($data);
+        echo "<script>Object.assign({$this->jsGlobal}, {$data});</script>";
     }
 
     /*
@@ -195,8 +197,8 @@ class ReportTweaks extends AbstractExternalModule
             ];
         }
         $sort = json_encode($sort);
-        echo "<script>{$this->module_global}.logic = {$logic};</script>";
-        echo "<script>{$this->module_global}.sort = {$sort};</script>";
+        echo "<script>{$this->jsGlobal}.logic = {$logic};</script>";
+        echo "<script>{$this->jsGlobal}.sort = {$sort};</script>";
     }
 
     /*
@@ -205,7 +207,6 @@ class ReportTweaks extends AbstractExternalModule
     */
     private function loadReportHeaders($report)
     {
-
         // Global with metadata
         global $Proj;
         $proj = (array)$Proj;
@@ -270,7 +271,7 @@ class ReportTweaks extends AbstractExternalModule
                 "redcap_event_name" => $headers["redcap_event_name"]["index"]
             ]
         ]);
-        echo "<script>{$this->module_global}.headers = {$formated};</script>";
+        echo "<script>{$this->jsGlobal}.headers = {$formated};</script>";
     }
 
     /*
@@ -286,7 +287,7 @@ class ReportTweaks extends AbstractExternalModule
             }
         }
         $load = json_encode($load);
-        echo "<script>{$this->module_global}.fields = {$load};</script>";
+        echo "<script>{$this->jsGlobal}.fields = {$load};</script>";
     }
 
     /*
@@ -301,31 +302,6 @@ class ReportTweaks extends AbstractExternalModule
             $map[""] = reset(array_keys(reset(REDCap::getData('array', null, REDCap::getRecordIdField()))));
         }
         return $map;
-    }
-
-    /*
-    Util functions used by writeback. Creates a map of instrument
-    display names to internal names (i.e. Hello world -> hello_world)
-    */
-    private function makeInstrumentMap()
-    {
-        return array_flip(REDCap::getInstrumentNames());
-    }
-
-    /*
-    HTML to pass down module prefix for the config page.
-    */
-    private function includePrefix()
-    {
-        echo "<script>var {$this->module_global} = {'modulePrefix': '{$this->getPrefix()}'};</script>";
-    }
-
-    /*
-    HTML to include the cookie.js library 
-    */
-    private function includeCookies()
-    {
-        echo "<script type='text/javascript' src={$this->getURL('js/cookie.min.js')}></script>";
     }
 
     /*
