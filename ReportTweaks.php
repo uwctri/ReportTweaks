@@ -231,23 +231,22 @@ class ReportTweaks extends AbstractExternalModule
                 "index" => $idx++,
                 "validation" => $proj["metadata"][$name]["element_validation_type"]
             ];
-            if ($name == $record_id) {
-                if ($proj["longitudinal"]) {
-                    $headers["redcap_event_name"] = [
-                        "index" => $idx++,
-                        "validation" => ""
-                    ];
-                }
-                if ($hasRepeatingFormsOrEvents) {
-                    $headers["redcap_repeat_instrument"] = [
-                        "index" => $idx++,
-                        "validation" => ""
-                    ];
-                    $headers["redcap_repeat_instance"] = [
-                        "index" => $idx++,
-                        "validation" => ""
-                    ];
-                }
+            if ($name != $record_id) continue;
+            if ($proj["longitudinal"]) {
+                $headers["redcap_event_name"] = [
+                    "index" => $idx++,
+                    "validation" => ""
+                ];
+            }
+            if ($hasRepeatingFormsOrEvents) {
+                $headers["redcap_repeat_instrument"] = [
+                    "index" => $idx++,
+                    "validation" => ""
+                ];
+                $headers["redcap_repeat_instance"] = [
+                    "index" => $idx++,
+                    "validation" => ""
+                ];
             }
         }
 
