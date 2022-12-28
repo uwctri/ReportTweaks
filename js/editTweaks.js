@@ -116,7 +116,7 @@ $(document).ready(() => {
                 return;
             }
             $modal.find(".active, .show").removeClass("active show");
-            $modal.find("[data-tab-count=0]").addClass("active show");
+            $modal.find(`[data-tab-count=${tab - 1}]`).addClass("active show");
             $modal.find(`[data-tab-count=${tab}]`).remove();
         });
 
