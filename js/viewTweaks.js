@@ -309,6 +309,9 @@ $(document).ready(() => {
                     break;
                 }
             }
+            if ("undefined" in payload) {
+                delete payload["undefined"];
+            }
             $.ajax({
                 method: 'POST',
                 url: module.router,
