@@ -286,8 +286,11 @@ class ReportTweaks extends AbstractExternalModule
     */
     private function makeEventMap()
     {
-        $map = array_flip(REDCap::getEventNames(false));
-        $map = $map + REDCap::getEventNames(true);
+        $map = [];
+        if (REDCap::isLongitudinal()) {
+            $map = array_flip(REDCap::getEventNames(false));
+            $map = $map + REDCap::getEventNames(true);
+        }
         if (empty($map)) {
             $map[""] = reset(array_keys(reset(REDCap::getData('array', null, REDCap::getRecordIdField()))));
         }
