@@ -41,7 +41,7 @@
                 <div class="tab-content">
                     <div class="tab-pane show active" role="tabpanel" data-tab-count="0">
                         <div class="row" style="justify-content: right;">
-                            <a class="removeWb"><i class="fa-solid fa-xmark"></i></a>
+                            <a class="removeWb" style="width:min-content;"><i class="fa-solid fa-xmark"></i></a>
                         </div>
                         <div class="row">
                             <label class="col-sm-4 control-label" for="modalBtn"><?= $this->tt('modal_edit_14'); ?></label>
