@@ -11,7 +11,7 @@ class ReportTweaks extends AbstractExternalModule
 
     private $jsGlobal = "";
     private $defaultSettings = ['includeEvent' => true];
-    private $max_json_len = floor(pow(2, 16) * 0.99); // 99% of 64kb 
+    private $maxJsonLen = (2 << 16) - (2 << 10); // 99% of 64kb
 
     /*
     Primary Redcap Hook, loads config and Report pages
