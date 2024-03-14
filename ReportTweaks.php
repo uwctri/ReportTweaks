@@ -78,6 +78,8 @@ class ReportTweaks extends AbstractExternalModule
         // Gather info
         $writeBackData = (array) json_decode($_POST['writeArray'], true);
         $pid = $_GET['pid'];
+        $saveType = 'array';
+        $record_id_name = REDCap::getRecordIdField();
         $overwrite = json_decode($_POST['overwrite']);
         $instrumentMap = array_flip(REDCap::getInstrumentNames());
         $writeArray = [];
@@ -109,7 +111,7 @@ class ReportTweaks extends AbstractExternalModule
                 $instance = $data['instance'] ?? "";
 
                 // Make sure field exists on event, shouldn't be an issue
-                if (empty($event) || !in_array($field, REDCap::getValidFieldsByEvents($pid, $event))) {
+                if (REDCap::isLongitudinal() && (empty($event) || !in_array($field, REDCap::getValidFieldsByEvents($pid, $event)))) {
                     continue;
                 }
 
@@ -128,6 +130,13 @@ class ReportTweaks extends AbstractExternalModule
                 if (!empty($instrument)) {
                     // Note: Field might not be on instrument if malicious, saveData will catch this though
                     $writeArray[$record]["repeat_instances"][$event][$instrument][$instance][$field] = $data['val'];
+                } elseif (empty($event)) {
+                    // Single event project
+                    $saveType = 'json-array';
+                    $writeArray[] = [
+                        $record_id_name => $record,
+                        $field => $data['val']
+                    ];
                 } else {
                     $writeArray[$record][$event][$field] = $data['val'];
                 }
@@ -136,7 +145,7 @@ class ReportTweaks extends AbstractExternalModule
 
         // Save and return or pass error
         if (!empty($writeArray)) {
-            $out = REDCap::saveData($pid, 'array', $writeArray);
+            $out = REDCap::saveData($pid, $saveType, $writeArray, 'overwrite'); #Note: overwrite here is just for saving blank values
         } else {
             $out = [
                 "warnings" => [$this->tt('warning_2')],
