@@ -11,6 +11,7 @@ class ReportTweaks extends AbstractExternalModule
 
     private $jsGlobal = "";
     private $defaultSettings = ['includeEvent' => true];
+    private $max_json_len = floor(pow(2, 16) * 0.99); // 99% of 64kb 
 
     /*
     Primary Redcap Hook, loads config and Report pages
@@ -66,7 +67,9 @@ class ReportTweaks extends AbstractExternalModule
         }
 
         $json[$_POST['report']] = $new;
-        $this->setProjectSetting('json', json_encode($json));
+        $save = json_encode($json);
+        $save = strlen($save) > $this->max_json_len ? gzcompress($save) : $save;
+        $this->setProjectSetting('json', $save);
     }
 
     /*
@@ -172,6 +175,7 @@ class ReportTweaks extends AbstractExternalModule
             // Get the EM's settings
             $json = ((array)json_decode($this->getProjectSetting('json')))[$report];
             $json = empty($json) ? $this->defaultSettings : $json;
+            $json = gzuncompress($json) ?: $json;
 
             // Organize the strucutre
             $data = array_merge($data, [
