@@ -292,7 +292,8 @@ class ReportTweaks extends AbstractExternalModule
             $map = $map + REDCap::getEventNames(true);
         }
         if (empty($map)) {
-            $map[""] = reset(array_keys(reset(REDCap::getData('array', null, REDCap::getRecordIdField()))));
+            $data = REDCap::getData('array', null, REDCap::getRecordIdField());
+            $map[""] = !empty($data) ? reset(array_keys(reset($data))) : "";
         }
         return $map;
     }
