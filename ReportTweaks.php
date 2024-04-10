@@ -168,7 +168,10 @@ class ReportTweaks extends AbstractExternalModule
         $this->initializeJavascriptModuleObject();
         $this->tt_transferToJavascriptModuleObject();
         $this->jsGlobal = $this->getJavascriptModuleObjectName();
-        $data = ["prefix" => $this->getPrefix()];
+        $data = [
+            "prefix" => $this->getPrefix(),
+            "isLong" => REDCap::isLongitudinal(),
+        ];
 
         if (!empty($report)) {
 
@@ -183,7 +186,6 @@ class ReportTweaks extends AbstractExternalModule
 
             // Organize the strucutre
             $data = array_merge($data, [
-                "isLong" => REDCap::isLongitudinal(),
                 "csrf" => $this->getCSRFToken(),
                 "router" => $this->getUrl('router.php'),
                 "record_id" => REDCap::getRecordIdField(),

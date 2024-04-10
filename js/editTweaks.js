@@ -8,9 +8,11 @@ $(document).ready(() => {
     Load existing settings and populate the choices onto the page
     */
     const loadSettings = () => {
-        $.each(module.settings, (key, val) => $(`input[name=tweaks_${key}]`).prop('checked', val));
-        $("#rtDateRangeField").val(module.settings['dateField']);
-        modalSettings = module.settings['_wb'] || modalSettings;
+        if (module.settings) {
+            $.each(module.settings, (key, val) => $(`input[name=tweaks_${key}]`).prop('checked', val));
+            $("#rtDateRangeField").val(module.settings['dateField']);
+            modalSettings = module.settings['_wb'] || modalSettings;
+        }
         if (!module.isLong) {
             $("[name=tweaks_includeEvent]").prop('disabled', true);
         }
