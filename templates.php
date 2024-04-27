@@ -190,11 +190,11 @@
         <div class="row no-gutters">
             <div class="col-md-5">
                 <span class="font-weight-bold"><?= $this->tt('hide_event'); ?>: </span>
-                <input type='checkbox' class='checkbox-inline' id='hideEventCol'>
+                <input type='checkbox' style="vertical-align: middle;" class='checkbox-inline' id='hideEventCol'>
             </div>
             <div class="col-md-7">
                 <span class="font-weight-bold"><?= $this->tt('hide_repeat'); ?>: </span>
-                <input type='checkbox' class='checkbox-inline' id='hideRepeatCols'>
+                <input type='checkbox' style="vertical-align: middle;" class='checkbox-inline' id='hideRepeatCols'>
             </div>
         </div>
         <div class="row no-gutters">

@@ -15,7 +15,8 @@ $(document).ready(() => {
 
     const setupCollapse = () => {
         const desc = $("#this_report_description");
-        if (desc.length < 1 || desc.height() < 160 || desc.hasClass("report_collapse"))
+        console.log("hit")
+        if ((desc.length < 1) || (desc.height() < 160) || desc.hasClass("report_collapse"))
             return;
         desc.addClass("report_collapse");
         desc.after(templates.rtShowDescription);
@@ -52,7 +53,7 @@ $(document).ready(() => {
     const insertToggleFilters = () => {
 
         // Insert into the DOM
-        $("#report_div .d-print-none").eq(1).append(templates.rtCheckboxes);
+        $("#report_div .d-print-none").eq(1).css("width", "30em").append(templates.rtCheckboxes);
 
         // Hide some checkboxes if needed
         let keys = Object.keys(module.headers.core);
@@ -732,6 +733,9 @@ $(document).ready(() => {
         }
         if (module.settings.writeback) {
             insertWriteback();
+        }
+        if (module.settings.collapse) {
+            setupCollapse()
         }
 
         // Setup localStorage Saving
