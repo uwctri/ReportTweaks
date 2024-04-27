@@ -3,7 +3,7 @@
     "tt_name": "module_name",
     "description": "Configurable Display Enhancements for REDCap Reports",
     "tt_description": "module_desc",
-    "documentation": "README.md",
+    "documentation": "docs.php",
     "namespace": "UWMadison\\ReportTweaks",
     "authors": [
         {

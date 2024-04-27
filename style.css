@@ -10,6 +10,15 @@
     min-width: 900px;
 }
 
+.report_collapse {
+    max-height: 10em;
+    overflow: hidden;
+}
+
+.report_show {
+    max-height: fit-content !important;
+}
+
 /*Edit Report Page*/
 
 .writeBackModal .row {

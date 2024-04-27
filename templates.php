@@ -21,6 +21,9 @@
             <input name="tweaks_dateRange" type="checkbox"> <?= $this->tt('dash_range'); ?>
         </div>
         <div style="margin:0 0 4px 20px;text-indent:-18px;">
+            <input name="tweaks_collapse" type="checkbox"> <?= $this->tt('dash_collapse'); ?>
+        </div>
+        <div style="margin:0 0 4px 20px;text-indent:-18px;">
             <input name="tweaks_writeback" type="checkbox"> <?= $this->tt('dash_writeback'); ?> <br /> <span id="openWriteBackModal"><i class="fas fa-cog ml-3" style="color:grey"></i><?= $this->tt('dash_config'); ?></span>
         </div>
     </div>
@@ -158,6 +161,10 @@
     </div>
 
     <!-- View Report Page -->
+
+    <a id="rtShowDescription" role="button">
+        <i class="fa-solid fa-angles-down"></i> <?= $this->tt('collapse'); ?>
+    </a>
 
     <button id="rtLogic" class="report_btn jqbuttonmed ui-button ui-corner-all ui-widget" style="font-size:12px;"><i class="fas fa-filter fs10"></i> BtnLabel</button>
 

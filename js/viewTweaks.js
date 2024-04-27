@@ -13,6 +13,18 @@ $(document).ready(() => {
         return newDate;
     }
 
+    const setupCollapse = () => {
+        const desc = $("#this_report_description");
+        if (desc.height() < 160 || desc.hasClass("report_collapse"))
+            return;
+        desc.addClass("report_collapse");
+        desc.after(templates.rtShowDescription);
+        $("#rtShowDescription").on("click", () => {
+            $("#rtShowDescription").hide();
+            desc.addClass("report_show");
+        });
+    }
+
     /*
     Manipulate DOM to insert the Copy Button regardless
     of report format.
@@ -682,9 +694,13 @@ $(document).ready(() => {
     on a multipage report. 
     */
     const waitForLoad = () => {
+
         if ($("#report_table thead").length == 0 ||
             !$.fn.DataTable.isDataTable("#report_table")) { // Still Loading
             window.requestAnimationFrame(waitForLoad);
+            if (module.settings.collapse) {
+                setupCollapse()
+            }
             return;
         }
 
