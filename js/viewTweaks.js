@@ -15,7 +15,7 @@ $(document).ready(() => {
 
     const setupCollapse = () => {
         const desc = $("#this_report_description");
-        if (desc.height() < 160 || desc.hasClass("report_collapse"))
+        if (desc.length < 1 || desc.height() < 160 || desc.hasClass("report_collapse"))
             return;
         desc.addClass("report_collapse");
         desc.after(templates.rtShowDescription);
