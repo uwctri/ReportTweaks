@@ -53,7 +53,7 @@ $(document).ready(() => {
     const insertToggleFilters = () => {
 
         // Insert into the DOM
-        $("#report_div .d-print-none").eq(1).css("width", "30em").append(templates.rtCheckboxes);
+        $("#report_div .d-print-none").eq(1).css("width", "32em").append(templates.rtCheckboxes);
 
         // Hide some checkboxes if needed
         let keys = Object.keys(module.headers.core);
