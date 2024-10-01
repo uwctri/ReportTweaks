@@ -226,10 +226,18 @@ class ReportTweaks extends AbstractExternalModule
     {
         // Init some global values and constants
         global $Proj;
-        $record_id = REDCap::getRecordIdField();
-        $Proj->setRepeatingFormsEvents();
-        $hasRepeatingFormsOrEvents = ($Proj->hasRepeatingEvents() || $Proj->hasRepeatingForms());
         $proj = (array)$Proj;
+        $isLongitudinal = REDCap::isLongitudinal();
+        $record_id = REDCap::getRecordIdField();
+
+        // Check if the report has repeat fields shown
+        $sql = '
+            SELECT report_display_include_repeating_fields AS re 
+            FROM redcap_reports 
+            WHERE report_id = ?; 
+        ';
+        $result = $this->query($sql, [$report]);
+        $hasRepeatingFormsOrEvents = $result->fetch_assoc()["re"] == "1";
 
         // Grab the fields on the report
         $sql = '
@@ -249,7 +257,7 @@ class ReportTweaks extends AbstractExternalModule
                 "validation" => $proj["metadata"][$name]["element_validation_type"]
             ];
             if ($name != $record_id) continue;
-            if ($proj["longitudinal"]) {
+            if ($isLongitudinal) {
                 $headers["redcap_event_name"] = [
                     "index" => $idx++,
                     "validation" => ""
