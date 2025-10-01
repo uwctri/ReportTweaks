@@ -95,11 +95,11 @@ class ReportTweaks extends AbstractExternalModule
             $user = $this->getUser()->getUsername();
             $rights = REDCap::getUserRights($user)[$user]['forms'];
             $form = REDCap::getDataDictionary($pid, 'array')[$field]['form_name'];
-            if ($rights[$form] != "1") { // 1 is View&Edit, 0 is Hidden, 2 is View Only
+            if (str_contains($rights[$form], "1")) { // 1 is View&Edit, 0 is Hidden, 2 is View Only, 3 is Delete
                 echo json_encode([
                     "form" => $form,
                     "warnings" => [$this->tt('warning_1')],
-                    "errors" => []
+                    "errors" => [],
                 ]);
                 return;
             }
