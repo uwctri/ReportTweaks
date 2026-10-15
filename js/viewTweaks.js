@@ -485,7 +485,7 @@ $(document).ready(() => {
 
             // Gather basic stuff
             let row = this.data();
-            let id = $(row[0]).text().split(' ')[0].trim();
+            let id = $(row[idIdx]).text().split(' ')[0].trim();
             let tmpId = prev.id;
 
             // Check to see if this and prev row match, else bail 

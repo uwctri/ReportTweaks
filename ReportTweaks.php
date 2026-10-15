@@ -11,7 +11,6 @@ class ReportTweaks extends AbstractExternalModule
 
     private $jsGlobal = "";
     private $defaultSettings = ['includeEvent' => true];
-    private $maxJsonLen = (2 << 15) - (2 << 10); // 99% of 64kb
 
     /*
     Primary Redcap Hook, loads config and Report pages
@@ -54,7 +53,11 @@ class ReportTweaks extends AbstractExternalModule
     public function saveReportConfig()
     {
         $json = $this->getProjectSetting('json');
-        $json = empty($json) ? array() : json_decode($json, true);
+        if (empty($json)) {
+            $json = [];
+        } else {
+            $json = $this->decodeReportConfig($json);
+        }
 
         // Escape 3 feilds that are html enabled 
         $new = json_decode($_POST['settings'], true);
@@ -68,7 +71,6 @@ class ReportTweaks extends AbstractExternalModule
 
         $json[$_POST['report']] = $new;
         $save = json_encode($json);
-        $save = strlen($save) > $this->maxJsonLen ? gzcompress($save) : $save;
         $this->setProjectSetting('json', $save);
     }
 
@@ -177,8 +179,7 @@ class ReportTweaks extends AbstractExternalModule
             if (empty($json)) {
                 $json = $this->defaultSettings;
             } else {
-                $json = gzuncompress($json) ?: $json;
-                $json = ((array)json_decode($json))[$report];
+                $json = $this->decodeReportConfig($json)[$report] ?? $this->defaultSettings;
             }
 
             // Organize the strucutre
@@ -194,8 +195,17 @@ class ReportTweaks extends AbstractExternalModule
         }
 
         // Pass down to JS
-        $data = json_encode($data);
+        $data = json_encode($data, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
         echo "<script>Object.assign({$this->jsGlobal}, {$data});</script>";
+    }
+
+    private function decodeReportConfig($json)
+    {
+        $settings = json_decode($json, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return $this->defaultSettings;
+        }
+        return $settings;
     }
 
     /*
@@ -205,7 +215,10 @@ class ReportTweaks extends AbstractExternalModule
     private function loadReportDetails($report)
     {
         $details = DataExport::getReports($report);
-        $logic =  json_encode($details["advanced_logic"] ?? $details["limiter_logic"]);
+        $logic = json_encode(
+            $details["advanced_logic"] ?? $details["limiter_logic"],
+            JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP
+        );
         $sort = [];
         foreach (range(1, 3) as $i) {
             $sort[] = [
@@ -213,7 +226,7 @@ class ReportTweaks extends AbstractExternalModule
                 'sort' => htmlentities($details["orderby_sort$i"], ENT_QUOTES)
             ];
         }
-        $sort = json_encode($sort);
+        $sort = json_encode($sort, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
         echo "<script>{$this->jsGlobal}.logic = {$logic};</script>";
         echo "<script>{$this->jsGlobal}.sort = {$sort};</script>";
     }
@@ -285,7 +298,7 @@ class ReportTweaks extends AbstractExternalModule
                 "redcap_repeat_instance" => $headers["redcap_repeat_instance"]["index"],
                 "redcap_event_name" => $headers["redcap_event_name"]["index"]
             ]
-        ]);
+        ], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
         echo "<script>{$this->jsGlobal}.headers = {$formated};</script>";
     }
 
@@ -301,7 +314,7 @@ class ReportTweaks extends AbstractExternalModule
                 $load[] = $field;
             }
         }
-        $load = json_encode($load);
+        $load = json_encode($load, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
         echo "<script>{$this->jsGlobal}.fields = {$load};</script>";
     }
 
