@@ -48,7 +48,7 @@
             <div class="modal-content">
                 <div class="modal-header bg-light">
                     <h5 class="modal-title"><i class="fas fa-database mr-2"></i><?= $this->tt('modal_edit_1'); ?></h5>
-                    <button type="button" class="close btn-close" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">
+                    <button type="button" class="close" id="rtCloseWbModal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
@@ -95,7 +95,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" id="rtCancelWbModal" data-dismiss="modal" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="rtCancelWbModal">Cancel</button>
                     <button type="button" class="btn btn-primary btn-sm" id="rtSaveWbModal">Save Writeback Config</button>
                 </div>
             </div>

@@ -340,8 +340,15 @@ $(document).ready(() => {
             $modal.modal('hide');
         });
 
-        $modal.on('click.rtwb', '#rtCancelWbModal, [data-dismiss="modal"], [data-bs-dismiss="modal"]', () => {
+        $modal.on('click.rtwb', '#rtCancelWbModal, #rtCloseWbModal', () => {
             $modal.modal('hide');
+        });
+
+        $modal.on('hidden.bs.modal.rtwb', () => {
+            if (!$('.modal.show').length) {
+                $('.modal-backdrop').remove();
+                $('body').removeClass('modal-open').css('padding-right', '');
+            }
         });
 
         renderModal();
