@@ -1,4 +1,4 @@
-/*View Report Page*/
+/* View Report Page */
 
 #rtCopyDataBtn {
     color: #aaa !important;
@@ -19,39 +19,12 @@
     max-height: fit-content !important;
 }
 
-/*Edit Report Page*/
-
-.writeBackModal .row {
-    margin-top: 10px;
-}
-
-.writeBackModal label {
-    text-align: right;
-}
-
-.writeBackModal a {
-    font-size: 13px;
-    margin-bottom: 0.5rem;
-    cursor: pointer;
-    text-align: center;
-}
-
-.writeBackModal a:hover {
-    color: inherit;
-}
-
-.writeBackModal .swal2-modal {
-    width: 800px
-}
-
-.writeBackModal {
-    padding: 0;
-}
-
-.writeBackModal .nav-link.addNewWb {
-    color: #007bff;
-}
+/* Edit Report Page */
 
 #openWriteBackModal {
     cursor: pointer;
+}
+
+#rtWritebackModal .rt-target-card {
+    border-left: 3px solid #007bff;
 }
