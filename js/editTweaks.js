@@ -32,19 +32,17 @@ $(document).ready(() => {
         settings['_wb'] = modalSettings;
         settings['dateField'] = $("#rtDateRangeField").val();
 
-        // Post back to DB
-        $.ajax({
-            method: 'POST',
-            url: module.router,
-            data: {
-                route: 'saveConfig',
-                report: module.getUrlParameter('report_id'),
-                settings: JSON.stringify(settings),
-                redcap_csrf_token: module.csrf
-            },
-            error: (jqXHR, textStatus, errorThrown) => console.log(`${jqXHR}\n${textStatus}\n${errorThrown}`),
-            success: () => console.log("Report Tweaks Settings Saved")
-        });
+        // Post back to DB via JSMO
+        module.ajax('save_report_config', {
+            report: module.getUrlParameter('report_id'),
+            settings: settings
+        }).then((res) => {
+            if (!res || !res.success) {
+                console.error('Report Tweaks Save Error:', res?.error || res);
+                return;
+            }
+            console.log("Report Tweaks Settings Saved");
+        }).catch((err) => console.error('Report Tweaks Save Error:', err));
     }
 
     /*

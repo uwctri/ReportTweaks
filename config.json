@@ -13,16 +13,33 @@
         }
     ],
     "framework-version": 17,
+    "auth-ajax-actions": [
+        "save_report_config",
+        "export_report",
+        "get_transformed_report",
+        "writeback_preview",
+        "writeback_execute"
+    ],
     "project-settings": [
         {
             "key": "info",
-            "name": "This module is configured via the edit report screen. Individual user configuration is saved in the user's local storage.<br><br><a>Click here to view all saved configuration.</a>",
+            "name": "This module is configured via the Edit Report screen. Individual user display preferences are saved in the user's browser.",
             "tt_name": "module_info",
             "type": "descriptive"
         },
         {
+            "key": "default_hide_event",
+            "name": "Hide <code>redcap_event_name</code> column by default for new users",
+            "type": "checkbox"
+        },
+        {
+            "key": "default_hide_repeat",
+            "name": "Hide repeating form columns by default for new users",
+            "type": "checkbox"
+        },
+        {
             "key": "json",
-            "name": "<b>Json Object</b>",
+            "name": "<b>Legacy JSON Config</b>",
             "tt_name": "module_json",
             "type": "textarea"
         }

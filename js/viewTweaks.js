@@ -325,45 +325,36 @@ $(document).ready(() => {
             if ("undefined" in payload) {
                 delete payload["undefined"];
             }
-            $.ajax({
-                method: 'POST',
-                url: module.router,
-                data: {
-                    route: 'reportWrite',
-                    overwrite: !!settings.overwrites, // encoded as "true" or "false" string
-                    writeArray: JSON.stringify(payload),
-                    redcap_csrf_token: module.csrf
-                },
-                error: (jqXHR, textStatus, errorThrown) => {
-                    console.log(`${jqXHR}\n${textStatus}\n${errorThrown}`);
-                    Swal.fire({
-                        icon: 'error',
-                        title: module.tt("modal_view_11"),
-                        text: module.tt("modal_view_12"),
-                    });
-                },
-                success: (data) => {
-                    // Expected Reuturn value format - 
-                    // {"errors":[],"warnings":[],"ids":{"5512":"5512"},"item_count":2} OR
-                    // {"warnings":["No data to write"]}
-                    console.log(data);
+            module.ajax('writeback_execute', {
+                overwrite: !!settings.overwrites,
+                writeArray: payload
+            }).then((data) => {
+                console.log(data);
+                if (typeof data === 'string') {
                     data = JSON.parse(data);
-                    module.writeDone = true;
-                    if (data.warnings.length || data.errors.length) {
-                        let warningText = data.warnings.concat(data.errors).join(', ');
-                        Swal.fire({
-                            icon: 'warning',
-                            title: module.tt("modal_view_13"),
-                            html: `${module.tt("modal_view_14")}<br>${module.tt("modal_view_15")}: ${warningText}`
-                        });
-                    } else {
-                        Swal.fire({
-                            icon: 'success',
-                            title: module.tt("modal_view_16"),
-                            text: module.tt("modal_view_17").replace('_', Object.keys(data.ids).length),
-                        });
-                    }
                 }
+                module.writeDone = true;
+                if ((data.warnings && data.warnings.length) || (data.errors && data.errors.length)) {
+                    let warningText = (data.warnings || []).concat(data.errors || []).join(', ');
+                    Swal.fire({
+                        icon: 'warning',
+                        title: module.tt("modal_view_13"),
+                        html: `${module.tt("modal_view_14")}<br>${module.tt("modal_view_15")}: ${warningText}`
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'success',
+                        title: module.tt("modal_view_16"),
+                        text: module.tt("modal_view_17").replace('_', Object.keys(data.ids || {}).length),
+                    });
+                }
+            }).catch((err) => {
+                console.error(err);
+                Swal.fire({
+                    icon: 'error',
+                    title: module.tt("modal_view_11"),
+                    text: module.tt("modal_view_12"),
+                });
             });
         })
     }
@@ -653,7 +644,10 @@ $(document).ready(() => {
     const updateStorage = (event = false) => {
         let storage = JSON.parse(localStorage.getItem(localStorageKey) || '{}');
         const report = module.getUrlParameter('report_id');
-        storage[report] ??= location.href.includes("ctri-redcap.dom.wisc.edu") ? { hideEventCol: true, hideRepeatCols: true } : {};
+        storage[report] ??= {
+            hideEventCol: !!module.defaultHideEvent,
+            hideRepeatCols: !!module.defaultHideRepeat
+        };
         if (event) { // if called as an event
             $("#rtCheckboxes input").each((_, el) => { storage[report][$(el).attr('id')] = $(el).is(':checked') });
             localStorage.setItem(localStorageKey, JSON.stringify(storage));

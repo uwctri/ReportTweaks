@@ -8,34 +8,30 @@ use DataExport;
 
 class ReportTweaks extends AbstractExternalModule
 {
-
-    private $jsGlobal = "";
-    private $defaultSettings = ['includeEvent' => true];
+    private string $jsGlobal = "";
+    private array $defaultSettings = ['includeEvent' => true];
 
     /*
-    Primary Redcap Hook, loads config and Report pages
-    */
+     * Primary REDCap hook: loads config and report page scripts.
+     */
     public function redcap_every_page_top($project_id)
     {
-        // Bail if user isn't logged in
-        if (!defined("USERID")) {
+        if (!defined("USERID")) return;
+
+        $report_id = $_GET['report_id'] ?? null;
+
+        if ($this->isPage('ExternalModules/manager/project.php') && $project_id) {
+            $this->loadSettings($project_id);
+            $this->includeJs('config.js');
             return;
         }
 
-        $report_id = $_GET['report_id'];
-
-        // Custom Config page
-        if ($this->isPage('ExternalModules/manager/project.php') && $project_id) {
-            $this->loadSettings();
-            $this->includeJs('config.js');
-        }
-
-        // Reports Page (Edit or View Report, Not the all-reports page or stats/charts)
-        elseif ($this->isPage('DataExport/index.php') && $project_id && ($report_id || $_GET['create']) && !$_GET['stats_charts']) {
-            $this->loadSettings($report_id);
+        if ($this->isPage('DataExport/index.php') && $project_id && ($report_id || !empty($_GET['create'])) && empty($_GET['stats_charts'])) {
+            $this->loadSettings($project_id, $report_id);
             $this->includeCSS();
             include('templates.php');
-            if ($_GET['addedit']) {
+
+            if (!empty($_GET['addedit'])) {
                 $this->includeDateFields();
                 $this->includeJs('editTweaks.js');
             } else {
@@ -47,96 +43,165 @@ class ReportTweaks extends AbstractExternalModule
     }
 
     /*
-    Save all report config to a single json setting for the EM. 
-    Invoked via router/ajax
-    */
-    public function saveReportConfig()
+     * Native JSMO AJAX router.
+     */
+    public function redcap_module_ajax($action, $payload, $project_id, $record)
     {
-        $json = $this->getProjectSetting('json');
-        if (empty($json)) {
-            $json = [];
-        } else {
-            $json = $this->decodeReportConfig($json);
+        if (!defined("USERID") || empty($project_id)) {
+            return ['success' => false, 'error' => 'Unauthorized'];
         }
 
-        // Escape 3 feilds that are html enabled 
-        $new = json_decode($_POST['settings'], true);
-        if (!empty($new['_wb'])) {
-            foreach ($new['_wb'] as $index => $data) {
-                foreach (['footer', 'modalBtn', 'modalText'] as $html) {
-                    $new['_wb'][$index][$html] = REDCap::escapeHtml($data[$html]);
-                }
-            }
+        if ($action === 'save_report_config') {
+            return $this->handleSaveReportConfig($project_id, $payload);
         }
 
-        $json[$_POST['report']] = $new;
-        $save = json_encode($json);
-        $this->setProjectSetting('json', $save);
+        if ($action === 'writeback_execute') {
+            return $this->handleWritebackExecute($project_id, $payload);
+        }
+
+        return ['success' => false, 'error' => 'Unknown action'];
     }
 
     /*
-    Perform a write back from a report. Write some value to a series of
-    records with event/instrument/instance info. Invoked via router/ajax
-    */
-    public function reportWrite()
+     * Save report-specific configuration via JSMO.
+     */
+    private function handleSaveReportConfig($project_id, array $payload): array
     {
-        // Gather info
-        $writeBackData = (array) json_decode($_POST['writeArray'], true);
-        $pid = $_GET['pid'];
+        $report_id = $payload['report'] ?? null;
+        if (empty($report_id) || !is_numeric($report_id)) {
+            return ['success' => false, 'error' => 'Invalid report ID'];
+        }
+
+        if (!$this->canEditReport($project_id, (int)$report_id)) {
+            return ['success' => false, 'error' => 'You do not have permission to edit this report.'];
+        }
+
+        $new = is_array($payload['settings'] ?? null)
+            ? $payload['settings']
+            : (json_decode((string)($payload['settings'] ?? '{}'), true) ?: []);
+
+        if (!empty($new['_wb']) && is_array($new['_wb'])) {
+            foreach ($new['_wb'] as $index => $data) {
+                if (!is_array($data)) continue;
+                foreach (['footer', 'modalBtn', 'modalText'] as $html) {
+                    if (isset($data[$html])) {
+                        $new['_wb'][$index][$html] = REDCap::escapeHtml($data[$html]);
+                    }
+                }
+            }
+        }
+
+        $this->setProjectSetting("report_config_{$report_id}", json_encode($new), $project_id);
+        return ['success' => true];
+    }
+
+    /*
+     * Check if the current user can edit the specified report.
+     */
+    private function canEditReport($project_id, int $report_id): bool
+    {
+        $user = $this->getUser();
+        if ($user->isSuperUser()) return true;
+
+        $username = $user->getUsername();
+        $rights = REDCap::getUserRights($username)[$username] ?? [];
+        if (($rights['reports'] ?? '0') === '1') return true;
+
+        $sql = "SELECT 1 FROM redcap_reports_edit_access_users WHERE report_id = ? AND username = ?";
+        $res = $this->query($sql, [$report_id, $username]);
+        if ($res->fetch_assoc()) return true;
+
+        if (!empty($rights['role_id'])) {
+            $sql = "SELECT 1 FROM redcap_reports_edit_access_roles WHERE report_id = ? AND role_id = ?";
+            $res = $this->query($sql, [$report_id, $rights['role_id']]);
+            if ($res->fetch_assoc()) return true;
+        }
+
+        return false;
+    }
+
+    /*
+     * Load per-report configuration, migrating from legacy 'json' setting if needed.
+     */
+    public function getReportConfig($project_id, $report_id): array
+    {
+        if (empty($report_id)) return $this->defaultSettings;
+
+        $perReport = $this->getProjectSetting("report_config_{$report_id}", $project_id);
+        if (!empty($perReport)) {
+            $decoded = json_decode($perReport, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                return $decoded;
+            }
+        }
+
+        $legacyJson = $this->getProjectSetting('json', $project_id);
+        if (!empty($legacyJson)) {
+            $all = json_decode($legacyJson, true);
+            if (json_last_error() === JSON_ERROR_NONE && isset($all[$report_id]) && is_array($all[$report_id])) {
+                $migrated = $all[$report_id];
+                $this->setProjectSetting("report_config_{$report_id}", json_encode($migrated), $project_id);
+                return $migrated;
+            }
+        }
+
+        return $this->defaultSettings;
+    }
+
+    /*
+     * Perform a writeback from a report (temporary wrapper until Phase 3 rewrite).
+     */
+    private function handleWritebackExecute($project_id, array $payload): array
+    {
+        $writeBackData = is_array($payload['writeArray'] ?? null)
+            ? $payload['writeArray']
+            : (json_decode((string)($payload['writeArray'] ?? '[]'), true) ?: []);
+
         $saveType = 'array';
         $record_id_name = REDCap::getRecordIdField();
-        $overwrite = json_decode($_POST['overwrite']);
+        $overwrite = filter_var($payload['overwrite'] ?? false, FILTER_VALIDATE_BOOLEAN);
         $instrumentMap = array_flip(REDCap::getInstrumentNames());
         $writeArray = [];
 
-        // Data is broken into groups based on what fields we are writing to
-        foreach ($writeBackData as $fieldName => $dataList) {
+        $user = $this->getUser()->getUsername();
+        $rights = REDCap::getUserRights($user)[$user]['forms'] ?? [];
+        $dd = REDCap::getDataDictionary($project_id, 'array');
 
-            // Get User rights to check if we can write to the field
+        foreach ($writeBackData as $fieldName => $dataList) {
             $field = $fieldName;
-            $user = $this->getUser()->getUsername();
-            $rights = REDCap::getUserRights($user)[$user]['forms'];
-            $form = REDCap::getDataDictionary($pid, 'array')[$field]['form_name'];
-            if (!str_contains($rights[$form], "1")) { // 1 is View&Edit, 0 is Hidden, 2 is View Only, 3 is Delete
-                echo json_encode([
+            $form = $dd[$field]['form_name'] ?? '';
+            if (empty($form) || !str_contains($rights[$form] ?? '', "1")) {
+                return [
                     "form" => $form,
                     "warnings" => [$this->tt('warning_1')],
                     "errors" => [],
-                ]);
-                return;
+                ];
             }
 
-            // Loop over every line of the report we got back
             foreach ($dataList as $data) {
-
-                // If we were sent a display name, swap it to an id (or internal instrument name)
-                $event = $data['event'];
-                $instrument = $instrumentMap[$data['instrument']] ?? "";
-                $record = $data['record'];
+                $event = $data['event'] ?? '';
+                $instrument = $instrumentMap[$data['instrument'] ?? ''] ?? "";
+                $record = $data['record'] ?? '';
                 $instance = $data['instance'] ?? "";
 
-                // Make sure field exists on event, shouldn't be an issue
-                if (REDCap::isLongitudinal() && (empty($event) || !in_array($field, REDCap::getValidFieldsByEvents($pid, $event)))) {
+                if (REDCap::isLongitudinal() && (empty($event) || !in_array($field, REDCap::getValidFieldsByEvents($project_id, $event)))) {
                     continue;
                 }
 
-                // If no overwritting then make sure we don't blow away data
                 if (!$overwrite) {
-                    $existingData = REDCap::getData($pid, 'array', $record, $field, $event)[$record];
+                    $existingData = REDCap::getData($project_id, 'array', $record, $field, $event)[$record] ?? [];
                     if (!empty($instrument)) {
-                        if (!empty($existingData["repeat_instances"][$event][$instrument][$instance][$field]))
-                            continue; // Don't do write
+                        if (!empty($existingData["repeat_instances"][$event][$instrument][$instance][$field])) {
+                            continue;
+                        }
                     } elseif (!empty($existingData[$event][$field])) {
-                        continue; // Don't do write
+                        continue;
                     }
                 }
 
-                // Set value on repeat or single instrument
                 if (!empty($instrument)) {
-                    // Note: Field might not be on instrument if malicious, saveData will catch this though
                     $writeArray[$record]["repeat_instances"][$event][$instrument][$instance][$field] = $data['val'];
                 } elseif (empty($event)) {
-                    // Single event project
                     $saveType = 'json-array';
                     $writeArray[] = [
                         $record_id_name => $record,
@@ -148,82 +213,58 @@ class ReportTweaks extends AbstractExternalModule
             }
         }
 
-        // Save and return or pass error
         if (!empty($writeArray)) {
-            $out = REDCap::saveData($pid, $saveType, $writeArray, 'overwrite'); #Note: overwrite here is just for saving blank values
-        } else {
-            $out = [
-                "warnings" => [$this->tt('warning_2')],
-                "errors" => []
-            ];
+            return REDCap::saveData($project_id, $saveType, $writeArray, 'overwrite');
         }
-        echo json_encode($out);
+
+        return [
+            "warnings" => [$this->tt('warning_2')],
+            "errors" => []
+        ];
     }
 
     /*
-    Inits the ReportTweaks global and loads the settings for
-    a report ID. Also packs the Redcap JS object
-    */
-    private function loadSettings($report = Null)
+     * Initializes the ReportTweaks JS module object and passes settings to the frontend.
+     */
+    private function loadSettings($project_id, $report = null): void
     {
-        // Setup Redcap JS object
         $this->initializeJavascriptModuleObject();
         $this->tt_transferToJavascriptModuleObject();
         $this->jsGlobal = $this->getJavascriptModuleObjectName();
         $data = ["prefix" => $this->getPrefix()];
 
         if (!empty($report)) {
-
-            // Get the EM's settings, decompress, and decode
-            $json = $this->getProjectSetting('json');
-            if (empty($json)) {
-                $json = $this->defaultSettings;
-            } else {
-                $json = $this->decodeReportConfig($json)[$report] ?? $this->defaultSettings;
-            }
-
-            // Organize the strucutre
+            $settings = $this->getReportConfig($project_id, $report);
             $data = array_merge($data, [
                 "isLong" => REDCap::isLongitudinal(),
-                "csrf" => $this->getCSRFToken(),
-                "router" => $this->getUrl('router.php'),
                 "record_id" => REDCap::getRecordIdField(),
-                "settings" => $json,
-                "username" => ($this->getUser())->getUsername(),
-                "eventMap" => $this->makeEventMap()
+                "settings" => $settings,
+                "username" => $this->getUser()->getUsername(),
+                "eventMap" => $this->makeEventMap(),
+                "defaultHideEvent" => (bool)$this->getProjectSetting('default_hide_event', $project_id),
+                "defaultHideRepeat" => (bool)$this->getProjectSetting('default_hide_repeat', $project_id),
             ]);
         }
 
-        // Pass down to JS
-        $data = json_encode($data, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
-        echo "<script>Object.assign({$this->jsGlobal}, {$data});</script>";
-    }
-
-    private function decodeReportConfig($json)
-    {
-        $settings = json_decode($json, true);
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            return $this->defaultSettings;
-        }
-        return $settings;
+        $encoded = json_encode($data, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
+        echo "<script>Object.assign({$this->jsGlobal}, {$encoded});</script>";
     }
 
     /*
-    Pass down sorting info and filter logic for the report. 
-    The datatalbes API doesn't store inital sorting order.
-    */
-    private function loadReportDetails($report)
+     * Pass down sorting info and filter logic for the report.
+     */
+    private function loadReportDetails($report): void
     {
         $details = DataExport::getReports($report);
         $logic = json_encode(
-            $details["advanced_logic"] ?? $details["limiter_logic"],
+            $details["advanced_logic"] ?? $details["limiter_logic"] ?? "",
             JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP
         );
         $sort = [];
         foreach (range(1, 3) as $i) {
             $sort[] = [
-                'field' => htmlentities($details["orderby_field$i"], ENT_QUOTES),
-                'sort' => htmlentities($details["orderby_sort$i"], ENT_QUOTES)
+                'field' => htmlentities($details["orderby_field$i"] ?? '', ENT_QUOTES),
+                'sort' => htmlentities($details["orderby_sort$i"] ?? '', ENT_QUOTES)
             ];
         }
         $sort = json_encode($sort, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
@@ -232,44 +273,36 @@ class ReportTweaks extends AbstractExternalModule
     }
 
     /*
-    Pass down a mapping of report headers. Only way to do this in DataExport
-    is by getting a full copy of the report
-    */
-    private function loadReportHeaders($report)
+     * Pass down a mapping of report headers.
+     */
+    private function loadReportHeaders($report): void
     {
-        // Init some global values and constants
         global $Proj;
-        $proj = (array)$Proj;
         $isLongitudinal = REDCap::isLongitudinal();
         $record_id = REDCap::getRecordIdField();
 
-        // Check if the report has repeat fields shown
+        $sql = 'SELECT report_display_include_repeating_fields AS re FROM redcap_reports WHERE report_id = ?';
+        $result = $this->query($sql, [$report]);
+        $row = $result->fetch_assoc();
+        $hasRepeatingFormsOrEvents = ($row['re'] ?? '0') === '1';
+
         $sql = '
-            SELECT report_display_include_repeating_fields AS re 
-            FROM redcap_reports 
-            WHERE report_id = ?; 
+            SELECT field_name FROM redcap_reports_fields
+            WHERE report_id = ?
+            AND isNull(limiter_group_operator)
+            ORDER BY field_order
         ';
         $result = $this->query($sql, [$report]);
-        $hasRepeatingFormsOrEvents = $result->fetch_assoc()["re"] == "1";
 
-        // Grab the fields on the report
-        $sql = '
-            SELECT field_name FROM redcap_reports_fields 
-            WHERE report_id = ? 
-            AND isNull(limiter_group_operator) 
-            ORDER BY field_order';
-        $result = $this->query($sql, [$report]);
-
-        // Flip through and build out our headers object
         $headers = [];
         $idx = 0;
         while ($row = $result->fetch_assoc()) {
             $name = $row["field_name"];
             $headers[$name] = [
                 "index" => $idx++,
-                "validation" => $proj["metadata"][$name]["element_validation_type"]
+                "validation" => $Proj->metadata[$name]["element_validation_type"] ?? ""
             ];
-            if ($name != $record_id) continue;
+            if ($name !== $record_id) continue;
             if ($isLongitudinal) {
                 $headers["redcap_event_name"] = [
                     "index" => $idx++,
@@ -288,29 +321,31 @@ class ReportTweaks extends AbstractExternalModule
             }
         }
 
-        // Prep for export to JS
-        $headers = array_merge(["record_id" => $headers[$record_id]], $headers);
-        $formated = json_encode([
+        if (isset($headers[$record_id])) {
+            $headers = array_merge(["record_id" => $headers[$record_id]], $headers);
+        }
+
+        $formatted = json_encode([
             "all" => $headers,
             "core" => [
-                "record_id" => $headers[$record_id]["index"],
-                "redcap_repeat_instrument" => $headers["redcap_repeat_instrument"]["index"],
-                "redcap_repeat_instance" => $headers["redcap_repeat_instance"]["index"],
-                "redcap_event_name" => $headers["redcap_event_name"]["index"]
+                "record_id" => $headers[$record_id]["index"] ?? null,
+                "redcap_repeat_instrument" => $headers["redcap_repeat_instrument"]["index"] ?? null,
+                "redcap_repeat_instance" => $headers["redcap_repeat_instance"]["index"] ?? null,
+                "redcap_event_name" => $headers["redcap_event_name"]["index"] ?? null,
             ]
         ], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
-        echo "<script>{$this->jsGlobal}.headers = {$formated};</script>";
+        echo "<script>{$this->jsGlobal}.headers = {$formatted};</script>";
     }
 
     /*
-    Pass down a list of all date(time) fields
-    */
-    private function includeDateFields()
+     * Pass down a list of all date(time) fields.
+     */
+    private function includeDateFields(): void
     {
         global $Proj;
         $load = [];
         foreach ($Proj->metadata as $field => $data) {
-            if (!empty($data["element_validation_type"]) && (strpos($data["element_validation_type"], "date") !== false)) {
+            if (!empty($data["element_validation_type"]) && str_contains($data["element_validation_type"], "date")) {
                 $load[] = $field;
             }
         }
@@ -319,10 +354,9 @@ class ReportTweaks extends AbstractExternalModule
     }
 
     /*
-    Util functions used by writeback. Creates a map of event display
-    names to event ids.
-    */
-    private function makeEventMap()
+     * Creates a map of event display names to event ids (and vice versa).
+     */
+    private function makeEventMap(): array
     {
         $map = [];
         if (REDCap::isLongitudinal()) {
@@ -331,24 +365,19 @@ class ReportTweaks extends AbstractExternalModule
         }
         if (empty($map)) {
             $data = REDCap::getData('array', null, REDCap::getRecordIdField());
-            $map[""] = !empty($data) ? reset(array_keys(reset($data))) : "";
+            $firstRecord = !empty($data) ? reset($data) : [];
+            $map[""] = !empty($firstRecord) ? array_key_first($firstRecord) : "";
         }
         return $map;
     }
 
-    /*
-    HTML to include some local JS file
-    */
-    private function includeJs($path)
+    private function includeJs(string $path): void
     {
-        echo "<script src={$this->getUrl('js/' .$path)}></script>";
+        echo "<script src=\"" . htmlspecialchars($this->getUrl("js/{$path}"), ENT_QUOTES) . "\"></script>";
     }
 
-    /*
-    HTML to include the local css file
-    */
-    private function includeCSS()
+    private function includeCSS(): void
     {
-        echo "<link rel='stylesheet' href={$this->getURL('style.css')}>";
+        echo "<link rel=\"stylesheet\" href=\"" . htmlspecialchars($this->getUrl("style.css"), ENT_QUOTES) . "\">";
     }
 }
