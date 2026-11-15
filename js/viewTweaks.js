@@ -727,19 +727,19 @@ $(document).ready(() => {
             return;
         }
 
-        // Link hasn't been moved
-        if (!$("#FixedTableHdrsEnable").hasClass('ReportTweaksAdjusted')) {
-            // Multi page report or Single Page tweak
-            if ($(".report_pagenum_div").length) {
-                $("#FixedTableHdrsEnable").insertAfter('#rtCopyDataBtn').addClass('ReportTweaksAdjusted');
-            } else {
-                $("#FixedTableHdrsEnable").prependTo('#report_table_filter').addClass('ReportTweaksAdjusted');
-            }
-        }
-
-        // Multi page report tweak for sizing
-        if ($(".report_pagenum_div").length) {
-            $("#FixedTableHdrsEnable").css('margin-left', Number($(".report_pagenum_div").css('width').replace('px', '')) - 170 + 'px');
+        const $toggle = $("#FixedTableHdrsEnable");
+        if (!$toggle.hasClass('ReportTweaksAdjusted') && $("#rtCopyDataBtn").length) {
+            $toggle
+                .insertAfter('#rtCopyDataBtn')
+                .addClass('ReportTweaksAdjusted')
+                .css({
+                    position: 'static',
+                    top: 'auto',
+                    left: 'auto',
+                    float: 'left',
+                    marginLeft: '10px',
+                    lineHeight: '28px'
+                });
         }
     }
 
@@ -768,6 +768,7 @@ $(document).ready(() => {
 
         // Build checkboxes & hook Export Data modal
         insertCopyBtn();
+        moveTableHeadersToggle();
         insertToggleFilters();
         insertFilters();
         hookExportModal();
