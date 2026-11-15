@@ -188,7 +188,9 @@ class ReportTweaks extends AbstractExternalModule
             return ['success' => false, 'error' => 'You do not have data export rights.'];
         }
 
-        $format = ($payload['format'] ?? 'csvraw') === 'csvlabels' ? 'csvlabels' : 'csvraw';
+        $formParams = is_array($payload['formParams'] ?? null) ? $payload['formParams'] : [];
+        $format = ($formParams['export_format'] ?? $payload['format'] ?? 'csvraw') === 'csvlabels' ? 'csvlabels' : 'csvraw';
+
         $settings = $this->getReportConfig($project_id, $report_id);
         if (!empty($payload['hideRepeatExport'])) {
             $settings['hideRepeatExport'] = true;
@@ -197,21 +199,49 @@ class ReportTweaks extends AbstractExternalModule
             $settings['includeEvent'] = (bool)$payload['includeEvent'];
         }
 
+        // Mirror REDCap's Export Data modal options
+        global $Proj, $user_rights;
+        $outputDags = empty($rights['group_id']) && ($formParams['export_groups'] ?? '') === 'on';
+        $outputSurveyFields = ($formParams['export_survey_fields'] ?? '') === 'on';
+        $hashRecordID = (!empty($Proj->table_pk_phi) && ($user_rights['forms_export'][$Proj->firstForm] ?? 0) > 1)
+            || ($formParams['deid-hashid'] ?? '') === 'on';
+        $removeIdentifierFields = ($formParams['deid-remove-identifiers'] ?? '') === 'on';
+        $removeUnvalidatedTextFields = ($formParams['deid-remove-text'] ?? '') === 'on';
+        $removeNotesFields = ($formParams['deid-remove-notes'] ?? '') === 'on';
+        $removeDateFields = ($formParams['deid-dates-remove'] ?? '') === 'on';
+        $dateShiftDates = !$removeDateFields && ($formParams['deid-dates-shift'] ?? '') === 'on';
+        $dateShiftSurveyTimestamps = !$removeDateFields && ($formParams['deid-surveytimestamps-shift'] ?? '') === 'on';
+        $returnBlankForGrayFormStatus = ($formParams['returnBlankForGrayFormStatus'] ?? '') === '1';
+
+        $csvDelimiter = (isset($formParams['csvDelimiter']) && DataExport::isValidCsvDelimiter($formParams['csvDelimiter']))
+            ? $formParams['csvDelimiter']
+            : ',';
+        if ($csvDelimiter === 'tab' || $csvDelimiter === 'TAB') $csvDelimiter = "\t";
+        if ($csvDelimiter === 'SPACE') $csvDelimiter = " ";
+        $decimalCharacter = $formParams['decimalCharacter'] ?? '';
+
+        $liveFilterLogic = $payload['liveFilterLogic'] ?? '';
+        $liveFilterGroupId = $payload['liveFilterGroupId'] ?? '';
+        $liveFilterEventId = $payload['liveFilterEventId'] ?? '';
+        if (($formParams['live_filters_apply'] ?? '') === 'on' && empty($liveFilterLogic)) {
+            list($liveFilterLogic, $liveFilterGroupId, $liveFilterEventId) = DataExport::buildReportDynamicFilterLogic($report_id);
+        }
+
         $rawCsv = DataExport::doReport(
             $report_id,
             'export',
             $format,
             false,
             false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
+            $outputDags,
+            $outputSurveyFields,
+            $removeIdentifierFields,
+            $hashRecordID,
+            $removeUnvalidatedTextFields,
+            $removeNotesFields,
+            $removeDateFields,
+            $dateShiftDates,
+            $dateShiftSurveyTimestamps,
             [],
             [],
             false,
@@ -219,18 +249,18 @@ class ReportTweaks extends AbstractExternalModule
             false,
             false, // $storeInFileRepository = false -> returns CSV string
             true,
-            $payload['liveFilterLogic'] ?? '',
-            $payload['liveFilterGroupId'] ?? '',
-            $payload['liveFilterEventId'] ?? '',
+            $liveFilterLogic,
+            $liveFilterGroupId,
+            $liveFilterEventId,
             false,
-            ',',
-            '',
+            $csvDelimiter,
+            $decimalCharacter,
             [],
             false,
             true,
             false,
             false,
-            false,
+            $returnBlankForGrayFormStatus,
             true,
             true,
             $project_id
@@ -240,7 +270,7 @@ class ReportTweaks extends AbstractExternalModule
             return ['success' => false, 'error' => 'Failed to generate report data.'];
         }
 
-        $transformed = $this->getTransformer()->transformCsv($rawCsv, $settings, REDCap::getRecordIdField());
+        $transformed = $this->getTransformer()->transformCsv($rawCsv, $settings, REDCap::getRecordIdField(), $csvDelimiter);
         $reportTitle = is_numeric($report_id) ? (DataExport::getReports($report_id)['title'] ?? "report_{$report_id}") : 'all_data';
         $safeTitle = preg_replace('/[^a-zA-Z0-9_-]+/', '_', $reportTitle);
         $suffix = $format === 'csvlabels' ? 'LABELS' : 'RAW';

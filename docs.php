@@ -30,7 +30,7 @@ include APP_PATH_VIEWS . 'HomeTabs.php';
                     <li>Minimum and Maximum search boxes to filter arbitrary ranges on a selected column.</li>
                     <li>A copy button that copies all visible data in the report to the clipboard.</li>
                     <li>Checkboxes to toggle showing REDCap-generated columns on the report.</li>
-                    <li>Tweaked CSV export buttons on the report toolbar and inside REDCap's Export Data dialog.</li>
+                    <li>Tweaked CSV export option inside REDCap's Export Data dialog.</li>
                 </ul>
             </div>
         </div>
@@ -85,7 +85,7 @@ include APP_PATH_VIEWS . 'HomeTabs.php';
         <div class="card my-4">
             <div class="card-header text-white fw-bold bg-secondary bg-gradient">Tweaked Data Exports</div>
             <div class="card-body">
-                REDCap's standard "Export Data" formats run directly against the database and do not include Report Tweaks transformations. To export your reshaped data, use the <b>Export Tweaked CSV (Raw)</b> or <b>Export Tweaked CSV (Labels)</b> buttons on the report toolbar (or inside REDCap's Export Data dialog). These exports respect your report filters, DAGs, and user export rights while applying all configured row reshaping, core-row fill, empty-row removal, and column hiding.
+                When you click REDCap's normal <b>Export Data</b> button on a report, an <b>Export tweaked data</b> checkbox is added to the export dialog. When checked (for CSV Raw or CSV Labels), Report Tweaks uses all of your selected export options (de-identification, date shifting, DAGs, survey fields, delimiters, and live filters) and applies your configured row reshaping, core-row fill, empty-row removal, and column settings before downloading the CSV.
             </div>
         </div>
         <div class="card my-4">

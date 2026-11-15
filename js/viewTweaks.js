@@ -478,9 +478,9 @@ $(document).ready(() => {
     }
 
     /*
-    Trigger server-side transformed CSV download (raw or labels).
+    Trigger server-side transformed CSV download using the options from REDCap's Export Data modal.
     */
-    const triggerTweakedExport = (format = 'csvraw') => {
+    const triggerTweakedExport = (formParams) => {
         const reportId = module.getUrlParameter('report_id');
         Swal.fire({
             title: 'Generating Tweaked Export...',
@@ -490,7 +490,7 @@ $(document).ready(() => {
 
         module.ajax('export_report', {
             report_id: reportId,
-            format: format,
+            formParams: formParams,
             hideRepeatExport: $("#hideRepeatCols").is(':checked'),
             includeEvent: !$("#hideEventCol").is(':checked') && !!module.settings.includeEvent
         }).then((res) => {
@@ -516,34 +516,67 @@ $(document).ready(() => {
     };
 
     /*
-    Insert tweaked CSV export buttons onto the report toolbar and hook REDCap's export modal.
+    Hook REDCap's native Export Data modal: add an "Export tweaked data" checkbox
+    and intercept the normal Export Data button when checked for CSV exports.
     */
-    const insertExportButtons = () => {
-        if ($("#rtExportGroup").length) return;
-        $("#report_div .d-print-none div").first().append(templates.rtExportGroup);
-        $("#rtExportRaw").on('click', () => triggerTweakedExport('csvraw'));
-        $("#rtExportLabels").on('click', () => triggerTweakedExport('csvlabels'));
+    const hookExportModal = () => {
+        if (module.exportHooked) return;
+        module.exportHooked = true;
 
-        // Also inject a Report Tweaks export banner into REDCap's native Export Data dialog when opened
         $(document).on('dialogopen', '#exportFormatDialog', function () {
             const $dlg = $(this);
-            if ($dlg.find('#rtNativeExportBanner').length) return;
-            $dlg.prepend(`
-                <div id="rtNativeExportBanner" class="alert alert-info py-2 px-3 mb-3 d-flex align-items-center justify-content-between">
-                    <div>
-                        <strong>Report Tweaks:</strong> Export with row merging, core-row fill, or wide flattening applied.
+            const s = module.settings || {};
+            const reshapeMode = s.reshapeMode || (s.merge ? 'merge' : 'none');
+            const hasTweaks = reshapeMode !== 'none' || !!s.fillCore || !!s.removeEmpty || !s.includeEvent || $("#hideRepeatCols").is(':checked');
+
+            if (!$dlg.find('#rtExportTweaksOption').length) {
+                const checkboxHtml = `
+                    <div id="rtExportTweaksOption" class="alert alert-light border py-2 px-3 mb-2">
+                        <label class="mb-0 font-weight-bold" style="cursor:pointer;">
+                            <input type="checkbox" id="rtApplyTweaksExport" name="rt_apply_tweaks" class="mr-1" ${hasTweaks ? 'checked' : ''}>
+                            Export tweaked data (apply Report Tweaks reshaping, core-row fill, and column settings)
+                        </label>
+                        <div class="text-muted fs11 ml-3">Applies to CSV Raw and CSV Labels exports using the options selected below.</div>
                     </div>
-                    <div class="btn-group btn-group-sm ml-2">
-                        <button type="button" class="btn btn-primary rt-native-export" data-fmt="csvraw">Tweaked CSV (Raw)</button>
-                        <button type="button" class="btn btn-outline-primary rt-native-export" data-fmt="csvlabels">Tweaked CSV (Labels)</button>
-                    </div>
-                </div>
-            `);
-            $dlg.find('.rt-native-export').on('click', (e) => {
-                const fmt = $(e.currentTarget).data('fmt');
-                $dlg.dialog('close');
-                triggerTweakedExport(fmt);
-            });
+                `;
+                const $fieldset = $dlg.find('#export_format_fieldset');
+                if ($fieldset.length) {
+                    $fieldset.before(checkboxHtml);
+                } else {
+                    $dlg.find('#exportFormatForm').prepend(checkboxHtml);
+                }
+
+                $dlg.on('change.rtExport', 'input[name="export_format"]', () => {
+                    const fmt = $dlg.find('input[name="export_format"]:checked').val();
+                    const isCsv = fmt === 'csvraw' || fmt === 'csvlabels';
+                    $dlg.find('#rtApplyTweaksExport').prop('disabled', !isCsv);
+                    if (!isCsv) $dlg.find('#rtApplyTweaksExport').prop('checked', false);
+                });
+            }
+
+            // Wrap the dialog's Export Data button (last button) if not already wrapped
+            const buttons = $dlg.dialog('option', 'buttons');
+            if (Array.isArray(buttons) && buttons.length > 1 && !buttons[buttons.length - 1]._rtWrapped) {
+                const origBtn = buttons[buttons.length - 1];
+                const origClick = origBtn.click;
+                origBtn.click = function () {
+                    const useTweaks = $dlg.find('#rtApplyTweaksExport').is(':checked');
+                    const fmt = $dlg.find('input[name="export_format"]:checked').val();
+                    if (useTweaks && (fmt === 'csvraw' || fmt === 'csvlabels')) {
+                        if (typeof exportFormatDialogSaveValidate === 'function' && !exportFormatDialogSaveValidate()) {
+                            simpleDialog(typeof langSaveValidate !== 'undefined' ? langSaveValidate : 'Please complete required fields.', typeof langError !== 'undefined' ? langError : 'Error');
+                            return;
+                        }
+                        const formParams = $('form#exportFormatForm').serializeObject();
+                        $dlg.dialog('close');
+                        triggerTweakedExport(formParams);
+                        return;
+                    }
+                    return origClick.apply(this, arguments);
+                };
+                origBtn._rtWrapped = true;
+                $dlg.dialog('option', 'buttons', buttons);
+            }
         });
     };
 
@@ -728,11 +761,11 @@ $(document).ready(() => {
         // Filter out any null values
         module.headers.core = Object.fromEntries(Object.entries(module.headers.core).filter(pair => isInteger(pair[1])));
 
-        // Build checkboxes & export buttons
+        // Build checkboxes & hook Export Data modal
         insertCopyBtn();
         insertToggleFilters();
         insertFilters();
-        insertExportButtons();
+        hookExportModal();
 
         // Load Report Config (server-side reshaping replaces old JS mergeRows/removeEmptyRows)
         applyServerTransformToTable();

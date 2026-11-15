@@ -25,9 +25,9 @@ class ReportTransformer
      * Transform a CSV string according to Report Tweaks settings.
      * Returns ['headers' => string[], 'rows' => string[][], 'csv' => string].
      */
-    public function transformCsv(string $csv, array $settings, string $recordIdField = ''): array
+    public function transformCsv(string $csv, array $settings, string $recordIdField = '', string $delimiter = ','): array
     {
-        $parsed = $this->parseCsv($csv);
+        $parsed = $this->parseCsv($csv, $delimiter);
         $headers = $parsed['headers'];
         $rows = $parsed['rows'];
 
@@ -100,7 +100,7 @@ class ReportTransformer
         return [
             'headers' => $headers,
             'rows' => $rows,
-            'csv' => $this->buildCsv($headers, $rows),
+            'csv' => $this->buildCsv($headers, $rows, $delimiter),
         ];
     }
 
@@ -376,7 +376,7 @@ class ReportTransformer
         return ['headers' => $newHeaders, 'rows' => $newRows];
     }
 
-    private function parseCsv(string $csv): array
+    private function parseCsv(string $csv, string $delimiter = ','): array
     {
         if (str_starts_with($csv, "\xEF\xBB\xBF")) {
             $csv = substr($csv, 3);
@@ -386,7 +386,7 @@ class ReportTransformer
         fwrite($fp, $csv);
         rewind($fp);
 
-        $headers = fgetcsv($fp, 0, ',', '"', '');
+        $headers = fgetcsv($fp, 0, $delimiter, '"', '');
         if ($headers === false) {
             fclose($fp);
             return ['headers' => [], 'rows' => []];
@@ -394,7 +394,7 @@ class ReportTransformer
 
         $rows = [];
         $colCount = count($headers);
-        while (($row = fgetcsv($fp, 0, ',', '"', '')) !== false) {
+        while (($row = fgetcsv($fp, 0, $delimiter, '"', '')) !== false) {
             if ($row === [null]) continue;
             if (count($row) < $colCount) {
                 $row = array_pad($row, $colCount, '');
@@ -406,12 +406,12 @@ class ReportTransformer
         return ['headers' => $headers, 'rows' => $rows];
     }
 
-    private function buildCsv(array $headers, array $rows): string
+    private function buildCsv(array $headers, array $rows, string $delimiter = ','): string
     {
         $fp = fopen('php://temp', 'r+');
-        fputcsv($fp, $headers, ',', '"', '');
+        fputcsv($fp, $headers, $delimiter, '"', '');
         foreach ($rows as $row) {
-            fputcsv($fp, $row, ',', '"', '');
+            fputcsv($fp, $row, $delimiter, '"', '');
         }
         rewind($fp);
         $out = stream_get_contents($fp);
