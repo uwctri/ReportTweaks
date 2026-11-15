@@ -27,6 +27,17 @@
     align-items: center;
     gap: 6px;
     margin-bottom: 0;
+    font-weight: normal;
+}
+
+#report_table_filter > label input {
+    width: 150px;
+    height: 28px;
+    padding: 2px 8px;
+    font-size: 12px;
+    border: 1px solid #ced4da;
+    border-radius: 0.2rem;
+    margin: 0;
 }
 
 #rtFilters {

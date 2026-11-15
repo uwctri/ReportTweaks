@@ -91,10 +91,10 @@ $(document).ready(() => {
     const insertFilters = () => {
 
         // HTML Setup
-        $(".dataTables-rc-searchfilter-parent").css('width', '100%');
+        $(".dataTables-rc-searchfilter-parent").css({ width: 'auto', maxWidth: '100%' });
         $(".dataTables-rc-searchfilter-parent .col-sm-6").first().remove();
-        $(".dataTables-rc-searchfilter-parent .col-sm-6").removeClass('col-sm-6').addClass('col-12 mt-1');
-        $("#report_table_filter input").css('margin-right', '3px');
+        $(".dataTables-rc-searchfilter-parent .col-sm-6").removeClass('col-sm-6').addClass('col-auto');
+        $("#report_table_filter > label input").addClass('form-control form-control-sm').attr('placeholder', 'Search...');
         $("#report_table_filter").prepend(templates.rtFilters);
 
         // Populate the pivot drop down
