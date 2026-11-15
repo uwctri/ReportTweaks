@@ -510,8 +510,8 @@ $(document).ready(() => {
             URL.revokeObjectURL(url);
         }).catch((err) => {
             Swal.close();
-            console.error(err);
-            Swal.fire('Export Error', 'An unexpected error occurred while exporting.', 'error');
+            console.error('Report Tweaks export error:', err);
+            Swal.fire('Export Error', err?.message || 'An unexpected error occurred while exporting.', 'error');
         });
     };
 
