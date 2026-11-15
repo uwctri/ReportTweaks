@@ -104,9 +104,10 @@ $(document).ready(() => {
         // Add the search function
         $.fn.dataTable.ext.search.push(rangeSearch);
 
-        // Perform the search when any of the new feilds are used
+        // Perform the search when any of the new fields are used
         let table = $("#report_table").DataTable();
-        $('#minmaxpivot, #tableFilterMin, #tableFilterMax').keyup(table.draw);
+        $('#minmaxpivot').on('change', () => table.draw());
+        $('#tableFilterMin, #tableFilterMax').on('keyup change', () => table.draw());
     }
 
     /*

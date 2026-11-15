@@ -10,6 +10,46 @@
     min-width: 900px;
 }
 
+#report_table_filter {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+#report_table_filter #FixedTableHdrsEnable {
+    margin-right: auto;
+}
+
+#report_table_filter > label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 0;
+}
+
+#rtFilters {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+#rtFilters #minmaxpivot,
+#rtFilters #tableFilterMin,
+#rtFilters #tableFilterMax {
+    width: auto;
+    height: 28px;
+    padding: 2px 8px;
+    font-size: 12px;
+}
+
+#rtFilters #tableFilterMin,
+#rtFilters #tableFilterMax {
+    width: 110px;
+}
+
 .report_collapse {
     max-height: 10em;
     overflow: hidden;

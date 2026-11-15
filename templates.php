@@ -115,17 +115,11 @@
     <a href="#" id="rtCopyDataBtn" class="btn btn-secondary btn-sm mb-1" role="button"><i class="fas fa-clipboard"></i></a>
 
     <div id="rtFilters">
-        <span class="dataTables_filter">
-            <label><input type="text" placeholder="Maximum" id="tableFilterMax" tabindex=3></label>
-        </span>
-        <span class="dataTables_filter">
-            <label><input type="text" placeholder="Minimum" id="tableFilterMin" tabindex=2></label>
-        </span>
-        <span class="dataTables_filter">
-            <select id="minmaxpivot">
-                <option value="" selected disabled hidden><?= $this->tt('filter'); ?></option>
-            </select>
-        </span>
+        <select id="minmaxpivot" class="form-control form-control-sm">
+            <option value="" selected disabled hidden><?= $this->tt('filter'); ?></option>
+        </select>
+        <input type="text" placeholder="Minimum" id="tableFilterMin" class="form-control form-control-sm" tabindex="2">
+        <input type="text" placeholder="Maximum" id="tableFilterMax" class="form-control form-control-sm" tabindex="3">
     </div>
 
     <div id="rtCheckboxes" class="container p-0 mt-1" style="max-width:420px">
