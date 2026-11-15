@@ -100,6 +100,13 @@ $(document).ready(() => {
         };
         $("[name=tweaks_fillCore]").on('change', toggleDropCore);
         toggleDropCore();
+
+        const toggleWritebackConfig = () => {
+            const enabled = $("[name=tweaks_writeback]").is(':checked');
+            $("#openWriteBackModal").toggle(enabled);
+        };
+        $("[name=tweaks_writeback]").on('change', toggleWritebackConfig);
+        toggleWritebackConfig();
     };
 
     const saveSettings = () => {
@@ -330,6 +337,10 @@ $(document).ready(() => {
         $modal.on('click.rtwb', '#rtSaveWbModal', () => {
             syncEditorToDraft();
             modalSettings = draft;
+            $modal.modal('hide');
+        });
+
+        $modal.on('click.rtwb', '#rtCancelWbModal, [data-dismiss="modal"], [data-bs-dismiss="modal"]', () => {
             $modal.modal('hide');
         });
 
