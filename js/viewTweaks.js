@@ -525,19 +525,23 @@ $(document).ready(() => {
 
         $(document).on('dialogopen', '#exportFormatDialog', function () {
             const $dlg = $(this);
-            const s = module.settings || {};
-            const reshapeMode = s.reshapeMode || (s.merge ? 'merge' : 'none');
-            const hasTweaks = reshapeMode !== 'none' || !!s.fillCore || !!s.removeEmpty || !s.includeEvent || $("#hideRepeatCols").is(':checked');
 
             if (!$dlg.find('#rtExportTweaksOption').length) {
                 const checkboxHtml = `
-                    <div id="rtExportTweaksOption" class="alert alert-light border py-2 px-3 mb-2">
-                        <label class="mb-0 font-weight-bold" style="cursor:pointer;">
-                            <input type="checkbox" id="rtApplyTweaksExport" name="rt_apply_tweaks" class="mr-1" ${hasTweaks ? 'checked' : ''}>
-                            Export tweaked data (apply Report Tweaks reshaping, core-row fill, and column settings)
-                        </label>
-                        <div class="text-muted fs11 ml-3">Applies to CSV Raw and CSV Labels exports using the options selected below.</div>
-                    </div>
+                    <fieldset id="rtExportTweaksOption" style="margin:15px 0;border:1px solid #bbb;background-color:#eee;">
+                        <legend style="padding:5px 3px;margin-left:15px;color:#800000;font-weight:bold;font-size:15px;">
+                            Report Tweaks
+                        </legend>
+                        <div style="padding:5px 15px 10px 15px;">
+                            <label style="cursor:pointer;margin-bottom:4px;">
+                                <input type="checkbox" id="rtApplyTweaksExport" name="rt_apply_tweaks" style="vertical-align:middle;margin-right:6px;" checked>
+                                <span style="font-weight:bold;font-size:13px;vertical-align:middle;">Export tweaked data</span>
+                            </label>
+                            <div style="margin-left:22px;font-size:11px;line-height:14px;color:#444;">
+                                Apply Report Tweaks reshaping, core-row fill, and column settings. Applies to CSV Raw and CSV Labels exports using the options selected below.
+                            </div>
+                        </div>
+                    </fieldset>
                 `;
                 const $fieldset = $dlg.find('#export_format_fieldset');
                 if ($fieldset.length) {
