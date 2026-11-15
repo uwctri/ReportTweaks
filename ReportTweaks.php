@@ -74,6 +74,10 @@ class ReportTweaks extends AbstractExternalModule
             return $this->handleGetTransformedReport($project_id, $payload);
         }
 
+        if ($action === 'writeback_preview') {
+            return $this->handleWritebackPreview($project_id, $payload);
+        }
+
         if ($action === 'writeback_execute') {
             return $this->handleWritebackExecute($project_id, $payload);
         }
@@ -319,77 +323,177 @@ class ReportTweaks extends AbstractExternalModule
     }
 
     /*
-     * Perform a writeback from a report (temporary wrapper until Phase 3 rewrite).
+     * Preview how many records/cells will be written vs skipped before executing.
+     */
+    private function handleWritebackPreview($project_id, array $payload): array
+    {
+        $plan = $this->prepareWritebackPlan($project_id, $payload);
+        if (!empty($plan['deniedForms'])) {
+            return [
+                'success' => false,
+                'warnings' => [$this->tt('warning_1') . ' (' . implode(', ', $plan['deniedForms']) . ')'],
+                'errors' => [],
+            ];
+        }
+
+        return [
+            'success' => true,
+            'willWrite' => $plan['willWrite'],
+            'skippedExisting' => $plan['skippedExisting'],
+            'skippedInvalidEvent' => $plan['skippedInvalidEvent'],
+            'uniqueRecords' => count($plan['records']),
+            'fields' => array_keys($plan['targetFields']),
+        ];
+    }
+
+    /*
+     * Perform a batched writeback from a report.
      */
     private function handleWritebackExecute($project_id, array $payload): array
+    {
+        $plan = $this->prepareWritebackPlan($project_id, $payload);
+        if (!empty($plan['deniedForms'])) {
+            return [
+                'form' => implode(', ', $plan['deniedForms']),
+                'warnings' => [$this->tt('warning_1')],
+                'errors' => [],
+            ];
+        }
+
+        if (empty($plan['writeArray'])) {
+            return [
+                'warnings' => [$this->tt('warning_2')],
+                'errors' => [],
+            ];
+        }
+
+        return REDCap::saveData($project_id, $plan['saveType'], $plan['writeArray'], 'overwrite');
+    }
+
+    /*
+     * Validate permissions, batch-fetch existing data, and build the saveData payload.
+     */
+    private function prepareWritebackPlan($project_id, array $payload): array
     {
         $writeBackData = is_array($payload['writeArray'] ?? null)
             ? $payload['writeArray']
             : (json_decode((string)($payload['writeArray'] ?? '[]'), true) ?: []);
 
-        $saveType = 'array';
+        $defaultOverwrite = filter_var($payload['overwrite'] ?? false, FILTER_VALIDATE_BOOLEAN);
         $record_id_name = REDCap::getRecordIdField();
-        $overwrite = filter_var($payload['overwrite'] ?? false, FILTER_VALIDATE_BOOLEAN);
         $instrumentMap = array_flip(REDCap::getInstrumentNames());
-        $writeArray = [];
+        $isLongitudinal = REDCap::isLongitudinal();
 
-        $user = $this->getUser()->getUsername();
-        $rights = REDCap::getUserRights($user)[$user]['forms'] ?? [];
+        $user = $this->getUser();
+        $username = $user->getUsername();
+        $rights = REDCap::getUserRights($username)[$username]['forms'] ?? [];
         $dd = REDCap::getDataDictionary($project_id, 'array');
 
-        foreach ($writeBackData as $fieldName => $dataList) {
-            $field = $fieldName;
-            $form = $dd[$field]['form_name'] ?? '';
-            if (empty($form) || !str_contains($rights[$form] ?? '', "1")) {
-                return [
-                    "form" => $form,
-                    "warnings" => [$this->tt('warning_1')],
-                    "errors" => [],
-                ];
-            }
+        $deniedForms = [];
+        $targetFields = [];
+        $recordSet = [];
 
+        foreach ($writeBackData as $fieldName => $dataList) {
+            $form = $dd[$fieldName]['form_name'] ?? '';
+            if (empty($form) || (!$user->isSuperUser() && !str_contains($rights[$form] ?? '', '1'))) {
+                $deniedForms[$form ?: $fieldName] = true;
+                continue;
+            }
+            $targetFields[$fieldName] = true;
+            foreach ($dataList as $data) {
+                if (!empty($data['record'])) {
+                    $recordSet[(string)$data['record']] = true;
+                }
+            }
+        }
+
+        if (!empty($deniedForms) || empty($recordSet) || empty($targetFields)) {
+            return [
+                'deniedForms' => array_keys($deniedForms),
+                'targetFields' => $targetFields,
+                'writeArray' => [],
+                'saveType' => 'array',
+                'willWrite' => 0,
+                'skippedExisting' => 0,
+                'skippedInvalidEvent' => 0,
+                'records' => [],
+            ];
+        }
+
+        // Batch-fetch existing data once instead of N+1 queries inside the row loop
+        $existingAll = REDCap::getData($project_id, 'array', array_keys($recordSet), array_keys($targetFields));
+        $validFieldsByEvent = [];
+
+        $writeArray = [];
+        $saveType = 'array';
+        $willWrite = 0;
+        $skippedExisting = 0;
+        $skippedInvalidEvent = 0;
+        $affectedRecords = [];
+
+        foreach ($writeBackData as $field => $dataList) {
             foreach ($dataList as $data) {
                 $event = $data['event'] ?? '';
-                $instrument = $instrumentMap[$data['instrument'] ?? ''] ?? "";
-                $record = $data['record'] ?? '';
-                $instance = $data['instance'] ?? "";
+                $instrument = $instrumentMap[$data['instrument'] ?? ''] ?? '';
+                $record = (string)($data['record'] ?? '');
+                $instance = $data['instance'] ?? '';
+                $itemOverwrite = isset($data['overwrite']) ? (bool)$data['overwrite'] : $defaultOverwrite;
 
-                if (REDCap::isLongitudinal() && (empty($event) || !in_array($field, REDCap::getValidFieldsByEvents($project_id, $event)))) {
-                    continue;
+                if ($record === '') continue;
+
+                if ($isLongitudinal) {
+                    if (empty($event)) {
+                        $skippedInvalidEvent++;
+                        continue;
+                    }
+                    if (!isset($validFieldsByEvent[$event])) {
+                        $validFieldsByEvent[$event] = array_flip(REDCap::getValidFieldsByEvents($project_id, $event));
+                    }
+                    if (!isset($validFieldsByEvent[$event][$field])) {
+                        $skippedInvalidEvent++;
+                        continue;
+                    }
                 }
 
-                if (!$overwrite) {
-                    $existingData = REDCap::getData($project_id, 'array', $record, $field, $event)[$record] ?? [];
+                if (!$itemOverwrite) {
+                    $recData = $existingAll[$record] ?? [];
                     if (!empty($instrument)) {
-                        if (!empty($existingData["repeat_instances"][$event][$instrument][$instance][$field])) {
+                        if (!empty($recData['repeat_instances'][$event][$instrument][$instance][$field])) {
+                            $skippedExisting++;
                             continue;
                         }
-                    } elseif (!empty($existingData[$event][$field])) {
+                    } elseif (!empty($recData[$event][$field])) {
+                        $skippedExisting++;
                         continue;
                     }
                 }
 
                 if (!empty($instrument)) {
-                    $writeArray[$record]["repeat_instances"][$event][$instrument][$instance][$field] = $data['val'];
+                    $writeArray[$record]['repeat_instances'][$event][$instrument][$instance][$field] = $data['val'];
                 } elseif (empty($event)) {
                     $saveType = 'json-array';
                     $writeArray[] = [
                         $record_id_name => $record,
-                        $field => $data['val']
+                        $field => $data['val'],
                     ];
                 } else {
                     $writeArray[$record][$event][$field] = $data['val'];
                 }
+
+                $willWrite++;
+                $affectedRecords[$record] = true;
             }
         }
 
-        if (!empty($writeArray)) {
-            return REDCap::saveData($project_id, $saveType, $writeArray, 'overwrite');
-        }
-
         return [
-            "warnings" => [$this->tt('warning_2')],
-            "errors" => []
+            'deniedForms' => [],
+            'targetFields' => $targetFields,
+            'writeArray' => $writeArray,
+            'saveType' => $saveType,
+            'willWrite' => $willWrite,
+            'skippedExisting' => $skippedExisting,
+            'skippedInvalidEvent' => $skippedInvalidEvent,
+            'records' => $affectedRecords,
         ];
     }
 

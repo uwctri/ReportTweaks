@@ -110,33 +110,73 @@ $(document).ready(() => {
     }
 
     /*
-    Inserts buttons below the live filters or write back buttons if they
-    are configured.
-    Undocumented behavior - Skip buttons with name "^" as it means that
-    the action of that button should trigger when the previous one is
-    clicked.
+    Normalize legacy _wb formats (single object, flat array, or '^' chained items)
+    into [{ modalBtn, modalText, footer, targets: [...] }].
+    */
+    const normalizeWbButtons = (raw) => {
+        if (!raw) return [];
+        const arr = Array.isArray(raw) ? raw : [raw];
+        const buttons = [];
+
+        arr.forEach((item) => {
+            if (!item || typeof item !== 'object') return;
+            if (Array.isArray(item.targets)) {
+                buttons.push(item);
+                return;
+            }
+            const target = {
+                event: item.event || '',
+                fieldType: item.fieldType || 'static',
+                fieldName: item.fieldName || item.field || '',
+                fieldMap: item.fieldMap || {},
+                writeType: item.writeType || 'ask',
+                writeStatic: item.writeStatic || '',
+                overwrites: !!item.overwrites,
+                increment: !!item.increment
+            };
+            if (item.modalBtn === '^' && buttons.length > 0) {
+                buttons[buttons.length - 1].targets.push(target);
+            } else if (item.modalBtn) {
+                buttons.push({
+                    modalBtn: item.modalBtn,
+                    modalText: item.modalText || '',
+                    footer: item.footer || '',
+                    targets: [target]
+                });
+            }
+        });
+        return buttons;
+    };
+
+    const formatLocalYmd = (dateObj) => {
+        const y = dateObj.getFullYear();
+        const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const d = String(dateObj.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    };
+
+    const parseYmdLocal = (ymd) => {
+        const [y, m, d] = (ymd || '').split('-').map(Number);
+        if (!y || !m || !d) return new Date();
+        return new Date(y, m - 1, d);
+    };
+
+    /*
+    Inserts write back buttons below the live filters.
     */
     const insertWriteback = () => {
-        const insert = (btnName) => {
+        const buttons = normalizeWbButtons(module.settings['_wb']);
+        module.wbButtons = buttons;
+        module.writeCount = buttons.length;
+
+        buttons.forEach((btn, idx) => {
+            if (!btn.modalBtn) return;
             $("#report_div .d-print-none").eq(1).append(
-                templates.rtModalBtn.replace('BtnLabel',
-                    htmlDecode(btnName)).replace('BtnNumber',
-                        module.writeCount));
-        }
-        module.writeCount = 0;
-        const settings = module.settings['_wb'];
-        if (settings.modalBtn) {
-            module.writeCount = 1;
-            insert(settings.modalBtn)
-        }
-        else if (settings.length > 0) {
-            settings.forEach((el) => {
-                if (el.modalBtn && el.modalBtn != "^") {
-                    insert(el.modalBtn)
-                    module.writeCount += 1;
-                }
-            })
-        }
+                templates.rtModalBtn
+                    .replace('BtnLabel', htmlDecode(btn.modalBtn))
+                    .replace('BtnNumber', idx)
+            );
+        });
         $(".tweaks_writeback").on("click", (el) => openModal(el));
     }
 
@@ -153,114 +193,124 @@ $(document).ready(() => {
     }
 
     /*
-    Gathers data for every row in preperation for a write back.
-    Finds event and repeating instrument/instance if it exists.
-    Also handles write value calculation, if any.
+    Extract plain record ID text whether cell is an <a> element or plain text.
     */
-    const packageData = (settings) => {
+    const extractRecordId = (cellHtml) => {
+        const $el = $('<div>').html(cellHtml ?? '');
+        return $el.text().trim().split(/\s+/)[0] || '';
+    };
+
+    /*
+    Gathers data for every visible row for a single target rule.
+    */
+    const packageTargetData = (target, askValues = {}) => {
         let writeObject = {};
         let table = $("#report_table").DataTable();
         let counter = 0;
-        let counterDay = new Date(today);
-        let writeValue = settings.writeStatic;
-        let type = settings.writeType;
-        let field = settings.fieldName || settings.field;
+        let counterDay = parseYmdLocal(today);
+        let baseValue = target.writeStatic ?? '';
+        let type = target.writeType;
+        let baseField = target.fieldName || target.field || '';
 
-        if (type == "today") {
-            writeValue = today;
-        } else if (type == "username") {
-            writeValue = module.username;
-        } else if (type == "ask") {
-            writeValue = $(`#${field}`).val();
+        if (type === "today") {
+            baseValue = today;
+        } else if (type === "username") {
+            baseValue = module.username;
+        } else if (type === "ask") {
+            baseValue = askValues[baseField] ?? $(`#rt_ask_${baseField}`).val() ?? '';
         }
 
-        let writeIsInt = $.isNumeric(writeValue) && Math.floor(writeValue) == writeValue;
+        let writeIsInt = $.isNumeric(baseValue) && Math.floor(baseValue) == baseValue;
 
         table.rows().every(function () {
             if (!$(this.node()).is(':visible')) return;
 
-            if (settings.increment) {
-                if (type == "today") {
-                    writeValue = counterDay.toISOString().split('T')[0];
+            let rowVal = baseValue;
+            if (target.increment) {
+                if (type === "today") {
+                    rowVal = formatLocalYmd(counterDay);
                 } else if (writeIsInt) {
-                    writeValue = (Number(writeValue) + counter).toString();
+                    rowVal = (Number(baseValue) + counter).toString();
                 }
                 counter++;
                 counterDay.setDate(counterDay.getDate() + 1);
             }
 
             const data = this.data();
-            const record = $(data[module.headers.core['record_id']])[0].text;
-            let eventid = module.eventMap[data[module.headers.core['redcap_event_name']]] ?? "";
-            let instrument = data[module.headers.core['redcap_repeat_instrument']] ?? "";
-            let instance = data[module.headers.core['redcap_repeat_instance']] ?? "";
-            if (settings.fieldType == "map") {
-                field = settings.fieldMap[module.eventMap[eventid]] ?? field;
+            const record = extractRecordId(data[module.headers.core['record_id']]);
+            if (!record) return;
+
+            const rawEventCell = module.headers.core['redcap_event_name'] !== undefined ? data[module.headers.core['redcap_event_name']] : '';
+            let eventid = module.eventMap[rawEventCell] ?? "";
+            let instrument = module.headers.core['redcap_repeat_instrument'] !== undefined ? (data[module.headers.core['redcap_repeat_instrument']] ?? "") : "";
+            let instance = module.headers.core['redcap_repeat_instance'] !== undefined ? (data[module.headers.core['redcap_repeat_instance']] ?? "") : "";
+
+            let targetField = baseField;
+            if (target.fieldType === "map" && target.fieldMap) {
+                const eventUniqueName = module.eventMap[eventid] ?? rawEventCell;
+                targetField = target.fieldMap[eventUniqueName] ?? target.fieldMap[rawEventCell] ?? baseField;
             }
-            if (settings.event) {
-                eventid = settings.event;
+            if (!targetField) return;
+
+            if (target.event) {
+                eventid = target.event;
                 instrument = "";
                 instance = "";
             }
-            writeObject[field] ??= [];
-            writeObject[field].push({
+
+            writeObject[targetField] ??= [];
+            writeObject[targetField].push({
                 record: record,
                 event: eventid,
-                instrument: instrument, // Always display name, mapped server side
+                instrument: instrument,
                 instance: instance,
-                val: writeValue,
-                field: field
+                val: rowVal,
+                field: targetField,
+                overwrite: !!target.overwrites
             });
         });
         return writeObject;
-    }
+    };
 
-    /*
-    Pretty formatting for displaying the field name being written to
-    in write back modal
-    */
-    const toTitleCase = (str) => {
-        return str.replace(/[_-]/g, ' ').replace(/(?:^|\s)\w/g, (match) => match.toUpperCase());
-    }
-
-    /*
-    Safe decode for HTML strings sent from PHP
-    */
-    const htmlDecode = (input) => {
-        var doc = new DOMParser().parseFromString(input, "text/html");
-        return doc.documentElement.textContent;
-    }
-
-    /*
-    Checks report, configuration, and if valid then generates/displays
-    the write back modal to user. 
-    */
-    const openModal = (event) => {
-        let btnNumber = $(event.currentTarget).data("btn-count");
-        let settings = module.settings['_wb'];
-        let newFormat = false;
-
-        // Check for new settings format
-        if (!settings.modalBtn) {
-            settings = settings[btnNumber];
-            newFormat = true;
-        }
-
-        const field = settings.fieldName || settings.field;
-        const defaults = { icon: 'info', iconHtml: "<i class='fas fa-database'></i>" }
-
-        // No records exist on the report
-        if (!$.fn.DataTable.isDataTable('#report_table') ||
-            !$("#report_table").DataTable().rows().count()) {
-            Swal.fire({
-                ...defaults,
-                title: module.tt("modal_view_1"),
-                html: module.tt("modal_view_2"),
+    const mergePayloads = (targets, askValues = {}) => {
+        const merged = {};
+        targets.forEach((t) => {
+            const part = packageTargetData(t, askValues);
+            Object.entries(part).forEach(([field, list]) => {
+                merged[field] ??= [];
+                merged[field].push(...list);
             });
+        });
+        return merged;
+    };
+
+    const toTitleCase = (str) => {
+        return (str || '').replace(/[_-]/g, ' ').replace(/(?:^|\s)\w/g, (match) => match.toUpperCase());
+    };
+
+    const htmlDecode = (input) => {
+        var doc = new DOMParser().parseFromString(input || '', "text/html");
+        return doc.documentElement.textContent;
+    };
+
+    /*
+    Checks report, configuration, runs pre-flight preview, and displays writeback modal.
+    */
+    const openModal = async (event) => {
+        const btnNumber = Number($(event.currentTarget).data("btn-count"));
+        const btnConfig = (module.wbButtons || [])[btnNumber];
+        const defaults = { icon: 'info', iconHtml: "<i class='fas fa-database'></i>" };
+
+        if (!btnConfig || !Array.isArray(btnConfig.targets) || btnConfig.targets.length === 0) {
+            Swal.fire({ icon: 'error', title: module.tt("modal_view_5"), html: module.tt("modal_view_6") });
             return;
         }
 
-        // Record ID is missing from the report
+        if (!$.fn.DataTable.isDataTable('#report_table') || !$("#report_table").DataTable().rows({ filter: 'applied' }).count()) {
+            Swal.fire({ ...defaults, title: module.tt("modal_view_1"), html: module.tt("modal_view_2") });
+            return;
+        }
+
         if (!isNumeric(module.headers.core['record_id'])) {
             Swal.fire({
                 ...defaults,
@@ -270,94 +320,101 @@ $(document).ready(() => {
             return;
         }
 
-        // Bad configuration
-        if (!field && [null, "static"].includes(settings.fieldType)) {
-            Swal.fire({
-                icon: 'error',
-                title: module.tt("modal_view_5"),
-                html: module.tt("modal_view_6"),
-            });
+        const invalidTarget = btnConfig.targets.find((t) => !(t.fieldName || t.field) && (!t.fieldType || t.fieldType === 'static'));
+        if (invalidTarget) {
+            Swal.fire({ icon: 'error', title: module.tt("modal_view_5"), html: module.tt("modal_view_6") });
             return;
         }
 
-        // Write back has occured once already
-        if (module.writeDone && module.writeCount == 1) {
-            Swal.fire({
-                ...defaults,
-                title: module.tt("modal_view_7"),
-                html: module.tt("modal_view_8"),
-            });
-            return;
+        // Run batched pre-flight preview
+        const previewPayload = mergePayloads(btnConfig.targets);
+        let previewHtml = '';
+        try {
+            const preview = await module.ajax('writeback_preview', { writeArray: previewPayload });
+            if (preview && !preview.success && preview.warnings?.length) {
+                Swal.fire({ icon: 'warning', title: module.tt("modal_view_13"), html: preview.warnings.join('<br>') });
+                return;
+            }
+            if (preview && preview.success) {
+                previewHtml = `
+                    <div class="alert alert-light border text-left fs12 mt-2 mb-2 py-2 px-3">
+                        <div><strong>Records affected:</strong> ${preview.uniqueRecords} (${preview.willWrite} cell writes)</div>
+                        <div><strong>Fields:</strong> ${(preview.fields || []).join(', ') || 'None'}</div>
+                        ${preview.skippedExisting ? `<div><strong>Skipped (already populated):</strong> ${preview.skippedExisting}</div>` : ''}
+                        ${preview.skippedInvalidEvent ? `<div><strong>Skipped (invalid event for field):</strong> ${preview.skippedInvalidEvent}</div>` : ''}
+                    </div>
+                `;
+            }
+        } catch (e) {
+            console.warn('Writeback preview failed, continuing to modal:', e);
         }
 
-        // Build out modal text if needed
-        let html = htmlDecode(settings.modalText);
-        if (settings.writeType == 'ask') {
-            html += templates.rtModalInput
-                .replace('LabelText', toTitleCase(field))
-                .replace('newID', field) + '&nbsp;';
-        }
+        let modalHtml = htmlDecode(btnConfig.modalText) + previewHtml;
+        const askTargets = btnConfig.targets.filter((t) => t.writeType === 'ask');
+        const seenAskFields = new Set();
+        askTargets.forEach((t) => {
+            const f = t.fieldName || t.field;
+            if (!f || seenAskFields.has(f)) return;
+            seenAskFields.add(f);
+            modalHtml += templates.rtModalInput
+                .replace('LabelText', toTitleCase(f))
+                .replace('newID', `rt_ask_${f}`) + '&nbsp;';
+        });
 
-        // Display modal and handle response from server
-        Swal.fire({
+        const result = await Swal.fire({
             icon: 'question',
             title: module.tt("modal_view_9"),
-            html: html,
-            footer: htmlDecode(settings.footer),
+            html: modalHtml,
+            footer: htmlDecode(btnConfig.footer),
             showCloseButton: true,
             showCancelButton: true,
             confirmButtonColor: '#28a745',
             cancelButtonColor: '#d33',
-            confirmButtonText: module.tt("modal_view_10")
-        }).then((result) => {
-            if (!result.value) return;
-            let payload = packageData(settings);
-            if (newFormat) {
-                for (let i = btnNumber + 1; i < module.settings['_wb'].length; i++) {
-                    let local = module.settings['_wb'][i];
-                    if (local.modalBtn == "^") {
-                        payload = { ...payload, ...packageData(local) }
-                        continue
-                    }
-                    break;
-                }
+            confirmButtonText: module.tt("modal_view_10"),
+            preConfirm: () => {
+                const vals = {};
+                seenAskFields.forEach((f) => { vals[f] = $(`#rt_ask_${f}`).val(); });
+                return vals;
             }
-            if ("undefined" in payload) {
-                delete payload["undefined"];
-            }
-            module.ajax('writeback_execute', {
-                overwrite: !!settings.overwrites,
-                writeArray: payload
-            }).then((data) => {
-                console.log(data);
-                if (typeof data === 'string') {
-                    data = JSON.parse(data);
-                }
-                module.writeDone = true;
-                if ((data.warnings && data.warnings.length) || (data.errors && data.errors.length)) {
-                    let warningText = (data.warnings || []).concat(data.errors || []).join(', ');
-                    Swal.fire({
-                        icon: 'warning',
-                        title: module.tt("modal_view_13"),
-                        html: `${module.tt("modal_view_14")}<br>${module.tt("modal_view_15")}: ${warningText}`
-                    });
-                } else {
-                    Swal.fire({
-                        icon: 'success',
-                        title: module.tt("modal_view_16"),
-                        text: module.tt("modal_view_17").replace('_', Object.keys(data.ids || {}).length),
-                    });
-                }
-            }).catch((err) => {
-                console.error(err);
+        });
+
+        if (!result.value) return;
+
+        const finalPayload = mergePayloads(btnConfig.targets, result.value);
+        try {
+            let data = await module.ajax('writeback_execute', { writeArray: finalPayload });
+            if (typeof data === 'string') data = JSON.parse(data);
+
+            if ((data.warnings && data.warnings.length) || (data.errors && data.errors.length)) {
+                let warningText = (data.warnings || []).concat(data.errors || []).join(', ');
                 Swal.fire({
-                    icon: 'error',
-                    title: module.tt("modal_view_11"),
-                    text: module.tt("modal_view_12"),
+                    icon: 'warning',
+                    title: module.tt("modal_view_13"),
+                    html: `${module.tt("modal_view_14")}<br>${module.tt("modal_view_15")}: ${warningText}`
                 });
+            } else {
+                const count = Object.keys(data.ids || {}).length;
+                const done = await Swal.fire({
+                    icon: 'success',
+                    title: module.tt("modal_view_16"),
+                    text: module.tt("modal_view_17").replace('_', count),
+                    showCancelButton: true,
+                    confirmButtonText: 'Refresh Report',
+                    cancelButtonText: 'Close'
+                });
+                if (done.value) {
+                    location.reload();
+                }
+            }
+        } catch (err) {
+            console.error(err);
+            Swal.fire({
+                icon: 'error',
+                title: module.tt("modal_view_11"),
+                text: module.tt("modal_view_12"),
             });
-        })
-    }
+        }
+    };
 
     /*
     Datatables search function to find values between to points. Points
