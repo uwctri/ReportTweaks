@@ -31,12 +31,11 @@ $(document).ready(() => {
     of report format.
     */
     const insertCopyBtn = () => {
-        let html = templates.rtCopyDataBtn;
+        const $topBar = $('<div id="rtTableTopBar"></div>').append(templates.rtCopyDataBtn);
         if ($(".report_pagenum_div").length) { // Pagination
-            $(".report_pagenum_div").first().before(html);
+            $(".report_pagenum_div").first().before($topBar);
         } else { // One Page
-            $("#report_table_wrapper").prepend(html);
-            $("#rtCopyDataBtn").css('float', 'left');
+            $("#report_table_wrapper").prepend($topBar);
         }
         $("#rtCopyDataBtn").popover({
             content: module.tt("popover"),
@@ -652,6 +651,7 @@ $(document).ready(() => {
             if ($("#hideRepeatCols").is(':checked')) {
                 toggleRepeatCols(false);
             }
+            updateTableWidth();
         } catch (err) {
             console.error('Report Tweaks transform error:', err);
         }
@@ -689,11 +689,26 @@ $(document).ready(() => {
     Ideally this would be resolved via CSS and this func removed.
     */
     const updateTableWidth = () => {
-        // Updates the width of the page Selector above the table OR the filter area when 1 page
-        if ($(".report_pagenum_div").length) {
-            $(".report_pagenum_div").css('width', $("#report_table").css('width'));
-        } else {
-            $("#report_table_filter").css('width', Number($("#report_table").css('width').replace('px', '')) - 30 + 'px');
+        const $table = $("#report_table");
+        if ($.fn.DataTable.isDataTable($table)) {
+            $table.css('width', 'auto');
+            const dt = $table.DataTable();
+            dt.columns.adjust();
+            if (dt.fixedHeader && typeof dt.fixedHeader.adjust === 'function') {
+                dt.fixedHeader.adjust();
+            }
+        }
+        const tableWidth = $table.outerWidth();
+        if (tableWidth) {
+            if ($(".report_pagenum_div").length) {
+                $(".report_pagenum_div").css('width', tableWidth + 'px');
+            }
+            if ($("#rtTableTopBar").length) {
+                $("#rtTableTopBar").css('width', tableWidth + 'px');
+            }
+            if ($("table.fixedHeader-floating").length) {
+                $("table.fixedHeader-floating").css('width', tableWidth + 'px');
+            }
         }
         moveTableHeadersToggle();
     }
@@ -728,17 +743,17 @@ $(document).ready(() => {
         }
 
         const $toggle = $("#FixedTableHdrsEnable");
-        if (!$toggle.hasClass('ReportTweaksAdjusted') && $("#rtCopyDataBtn").length) {
+        if (!$toggle.hasClass('ReportTweaksAdjusted') && $("#rtTableTopBar").length) {
             $toggle
-                .insertAfter('#rtCopyDataBtn')
+                .appendTo('#rtTableTopBar')
                 .addClass('ReportTweaksAdjusted')
                 .css({
                     position: 'static',
                     top: 'auto',
                     left: 'auto',
-                    float: 'left',
-                    marginLeft: '10px',
-                    lineHeight: '28px'
+                    float: 'none',
+                    marginLeft: 'auto',
+                    lineHeight: 'normal'
                 });
         }
     }
@@ -793,6 +808,7 @@ $(document).ready(() => {
         const storage = updateStorage();
         $.each(storage, (key, value) => { if (value) $(`#${key}:enabled`).click() });
         $("#rtCheckboxes input").on('click', updateStorage);
+        updateTableWidth();
     }
 
     /*
