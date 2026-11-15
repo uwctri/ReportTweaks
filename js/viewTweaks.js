@@ -421,181 +421,146 @@ $(document).ready(() => {
     }
 
     /*
-    Copy all visible data from the report including headers to the user's clipboard as a 
-    tab deliminted sheet that can be easily pasted into excel or other software.
+    Trigger server-side transformed CSV download (raw or labels).
     */
-    const mergeRows = () => {
-
-        // Gather common values
-        let table = $("#report_table").DataTable();
-        const idIdx = module.headers.core.record_id;
-
-        // Check if we have a record id column
-        if (idIdx < 0) {
-            // Can't merge without record id
-            return;
-        }
-
-        // Build a mapping of colindex to validation AND
-        // Build a cache of the indexs with a date validation for later
-        let validationMap = {};
-        let buildCache = []
-        Object.entries(module.headers.all).forEach((el) => {
-            let data = el[1];
-            validationMap[data.index] = data.validation;
-            if (["date_mdy", "date_dmy"].includes(data.validation)) {
-                buildCache.push(data.index);
-            }
+    const triggerTweakedExport = (format = 'csvraw') => {
+        const reportId = module.getUrlParameter('report_id');
+        Swal.fire({
+            title: 'Generating Tweaked Export...',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
         });
 
-        // Get initial ordering
-        let ordering = table.order();
-        if (!ordering.length) {
-            ordering = module.sort
-                .filter(x => x.field)
-                .map(x => [module.headers.all[x.field]?.index, x.sort.toLowerCase()])
-                .filter(x => x[0] !== undefined);
-        }
+        module.ajax('export_report', {
+            report_id: reportId,
+            format: format,
+            hideRepeatExport: $("#hideRepeatCols").is(':checked'),
+            includeEvent: !$("#hideEventCol").is(':checked') && !!module.settings.includeEvent
+        }).then((res) => {
+            Swal.close();
+            if (!res || !res.success) {
+                Swal.fire('Export Error', res?.error || 'Unable to export report.', 'error');
+                return;
+            }
+            const blob = new Blob([res.csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = res.filename || `report_${reportId}_tweaked.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }).catch((err) => {
+            Swal.close();
+            console.error(err);
+            Swal.fire('Export Error', 'An unexpected error occurred while exporting.', 'error');
+        });
+    };
 
-        // Re-sort the table if needed, we will restore at the end
-        let sort = false;
-        if (ordering[0][0] != idIdx || ordering.length > 1) {
-            sort = true;
-            table.order([idIdx, "asc"]).draw();
-        }
+    /*
+    Insert tweaked CSV export buttons onto the report toolbar and hook REDCap's export modal.
+    */
+    const insertExportButtons = () => {
+        if ($("#rtExportGroup").length) return;
+        $("#report_div .d-print-none div").first().append(templates.rtExportGroup);
+        $("#rtExportRaw").on('click', () => triggerTweakedExport('csvraw'));
+        $("#rtExportLabels").on('click', () => triggerTweakedExport('csvlabels'));
 
-        // Setup for loop
-        let prev = {
-            'id': -1,
-            'index': -1
-        };
-        let remove = [];
+        // Also inject a Report Tweaks export banner into REDCap's native Export Data dialog when opened
+        $(document).on('dialogopen', '#exportFormatDialog', function () {
+            const $dlg = $(this);
+            if ($dlg.find('#rtNativeExportBanner').length) return;
+            $dlg.prepend(`
+                <div id="rtNativeExportBanner" class="alert alert-info py-2 px-3 mb-3 d-flex align-items-center justify-content-between">
+                    <div>
+                        <strong>Report Tweaks:</strong> Export with row merging, core-row fill, or wide flattening applied.
+                    </div>
+                    <div class="btn-group btn-group-sm ml-2">
+                        <button type="button" class="btn btn-primary rt-native-export" data-fmt="csvraw">Tweaked CSV (Raw)</button>
+                        <button type="button" class="btn btn-outline-primary rt-native-export" data-fmt="csvlabels">Tweaked CSV (Labels)</button>
+                    </div>
+                </div>
+            `);
+            $dlg.find('.rt-native-export').on('click', (e) => {
+                const fmt = $(e.currentTarget).data('fmt');
+                $dlg.dialog('close');
+                triggerTweakedExport(fmt);
+            });
+        });
+    };
 
-        // Loop over all rows in the table
-        table.rows().every(function (rowIdx, tableLoop, rowLoop) {
+    /*
+    Apply server-side reshaping (merge, wide_pivot, fillCore, removeEmpty) to #report_table.
+    Replaces DataTable contents cleanly across all records (avoids pagination boundary bugs).
+    */
+    const applyServerTransformToTable = async () => {
+        const s = module.settings || {};
+        const reshapeMode = s.reshapeMode || (s.merge ? 'merge' : 'none');
+        const needsTransform = reshapeMode !== 'none' || !!s.fillCore || !!s.removeEmpty;
+        if (!needsTransform) return;
 
-            // Gather basic stuff
-            let row = this.data();
-            let id = $(row[idIdx]).text().split(' ')[0].trim();
-            let tmpId = prev.id;
+        const reportId = module.getUrlParameter('report_id');
+        try {
+            const res = await module.ajax('get_transformed_report', { report_id: reportId });
+            if (!res || !res.success || !Array.isArray(res.headers)) return;
 
-            // Check to see if this and prev row match, else bail 
-            // We need to stash rowIdx here as datatables API always
-            // returns the init row index, not the current displayed ordered
-            if (id != tmpId) {
-                prev = {
-                    'id': id,
-                    'index': rowIdx
+            const $table = $("#report_table");
+            if ($.fn.DataTable.isDataTable($table)) {
+                $table.DataTable().destroy();
+            }
+
+            const escapeHtml = (str) => $('<div>').text(str ?? '').html();
+
+            const theadHtml = '<tr>' + res.headers.map(h => `<th><div>${escapeHtml(h)}</div></th>`).join('') + '</tr>';
+            const tbodyHtml = res.rows.map(row =>
+                '<tr>' + row.map(cell => `<td>${escapeHtml(cell)}</td>`).join('') + '</tr>'
+            ).join('');
+
+            $table.find('thead').html(theadHtml);
+            $table.find('tbody').html(tbodyHtml);
+
+            // Rebuild header index map so column toggles, range filter, and writeback stay accurate
+            const newAll = {};
+            res.headers.forEach((name, idx) => {
+                newAll[name] = {
+                    index: idx,
+                    validation: module.headers.all[name]?.validation || ''
                 };
-                return;
-            }
-
-            // Map all current and previous row data so we can compare display values
-            // Merge the two and if successful continue 
-            let currData = $.map(row, (value, key) => typeof value == "string" ? value : value['display']);
-            let prevData = $.map(table.row(prev.index).data(), (value, key) => typeof value == "string" ? value : value['display']);
-            let newData = mergeArray(currData, prevData);
-            if (!newData) {
-                return;
-            }
-
-            // Populate the row with the merged data and remove
-            // any bad styling. Skip spots where no new data exists
-            $(this.node()).find("td").each(function (index, el) {
-                if (newData[index] == null) {
-                    return;
-                }
-                $(el).removeClass('nodesig');
-                if ($(el).html() != newData[index]) {
-                    table.cell(rowIdx, index).data(newData[index]);
+            });
+            module.headers.all = newAll;
+            module.headers.core = {};
+            ['record_id', module.record_id, 'redcap_event_name', 'redcap_repeat_instrument', 'redcap_repeat_instance'].forEach((k) => {
+                const key = k === module.record_id ? 'record_id' : k;
+                if (newAll[k] !== undefined) {
+                    module.headers.core[key] = newAll[k].index;
                 }
             });
 
-            // Save the node to our remove list
-            remove.push(table.row(prev.index).node());
+            // Re-populate range filter dropdown with updated headers
+            const $pivot = $('#minmaxpivot');
+            if ($pivot.length) {
+                $pivot.find('option:not(:first)').remove();
+                res.headers.forEach((h) => $pivot.append(new Option(h, h)));
+            }
 
-            // Stash current id/row
-            prev = {
-                'id': id,
-                'index': rowIdx
-            };
-        });
-
-        // Review and trash rows that have been merged into others, update
-        remove.forEach((row) => table.row(row).remove());
-        $("#report_div span").first().text(table.rows().count()); // count
-        table.draw();
-
-        // Rebuild the cache for sorting dates
-        // Data Tables doesn't allow for changing ordering/sorting functions after
-        // init nor does it expose plugin tools to do so. We are forced to manually
-        // rebuild the cache via un-documented means. We must do this after the draw.
-        table.rows().every(function (rowIdx) {
-            $.fn.dataTable.settings[0].aoData[rowIdx]._aSortData = [];
-            let row = this.data();
-            buildCache.forEach(function (colIdx) {
-                let data = row[colIdx];
-                data = data instanceof Object ? data.display : data;
-                if (!data) {
-                    $.fn.dataTable.settings[0].aoData[rowIdx]._aSortData[colIdx] = 0;
-                    return;
-                }
-                let [date, time] = data.split(' ');
-                if (validationMap[colIdx] == "date_dmy") {
-                    date = date_dmy2ymd(date);
-                } else if (validationMap[colIdx] == "date_mdy") {
-                    date = date_mdy2ymd(date);
-                }
-                $.fn.dataTable.settings[0].aoData[rowIdx]._aSortData[colIdx] =
-                    parseInt(date.replaceAll('-', '') + (time || "").replace(':', ''));
+            $table.DataTable({
+                paging: res.rows.length > 500,
+                pageLength: 500,
+                order: []
             });
-        });
 
-        // Restore init sorting scheme
-        if (sort) {
-            // Newer versions of DT throw an error when passing in the default -1
-            ordering[0][0] = ordering[0][0] == -1 ? 0 : ordering[0][0];
-            table.order(ordering).draw();
+            $("#report_div span").first().text(res.rows.length);
+            if (!module.settings.includeEvent) {
+                toggleEventCol(false);
+            }
+            if ($("#hideRepeatCols").is(':checked')) {
+                toggleRepeatCols(false);
+            }
+        } catch (err) {
+            console.error('Report Tweaks transform error:', err);
         }
-
-    }
-
-    /*
-    Compares two arrays and if they can be merged without data loss 
-    then do so, otherwise return false.
-    */
-    const mergeArray = (arr1, arr2) => {
-        let target = [];
-        $.each(arr1, function (index, arr1Value) {
-            if (Object.values(module.headers.core).includes(index)) {
-                target[index] = null;
-            } else if (arr2[index] == "" || arr1Value == "" || arr1Value == arr2[index]) {
-                target[index] = arr1Value || arr2[index];
-            } else {
-                target = false;
-                return true;
-            }
-        });
-        return target;
-    }
-
-    /*
-    Remove rows from the table that contain no data except the record id
-    and redcap generated fields.
-    */
-    const removeEmptyRows = () => {
-        let table = $("#report_table").DataTable();
-        let remove = [];
-        table.rows().every(function (rowIdx, tableLoop, rowLoop) {
-            let data = $.map(this.data(), (value, key) => typeof value == "string" ? value : value['display']);
-            if (data.filter((datum, colIdx) =>
-                !Object.values(module.headers.core).includes(colIdx) && datum != "").length == 0) {
-                remove.push(this.node());
-            }
-        });
-        remove.forEach((row) => table.row(row).remove());
-        table.draw();
-    }
+    };
 
     /*
     Toggle Column visibility for redcap_repeat_columns.
@@ -706,18 +671,14 @@ $(document).ready(() => {
         // Filter out any null values
         module.headers.core = Object.fromEntries(Object.entries(module.headers.core).filter(pair => isInteger(pair[1])));
 
-        // Build checkboxes
+        // Build checkboxes & export buttons
         insertCopyBtn();
         insertToggleFilters();
         insertFilters();
+        insertExportButtons();
 
-        // Load Report Config
-        if (module.settings.merge) {
-            mergeRows();
-        }
-        if (module.settings.removeEmpty) {
-            removeEmptyRows();
-        }
+        // Load Report Config (server-side reshaping replaces old JS mergeRows/removeEmptyRows)
+        applyServerTransformToTable();
         if (module.settings.reportLogic) {
             insertReportLogic();
         }

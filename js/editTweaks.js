@@ -9,26 +9,46 @@ $(document).ready(() => {
     */
     const loadSettings = () => {
         if (module.settings) {
-            $.each(module.settings, (key, val) => $(`input[name=tweaks_${key}]`).prop('checked', val));
+            $.each(module.settings, (key, val) => {
+                const $el = $(`[name=tweaks_${key}]`);
+                if ($el.is(':checkbox')) {
+                    $el.prop('checked', !!val);
+                } else if ($el.is('select, input')) {
+                    $el.val(val);
+                }
+            });
+            // Backward compatibility for legacy boolean 'merge'
+            if (!module.settings.reshapeMode && module.settings.merge) {
+                $("[name=tweaks_reshapeMode]").val('merge');
+            }
             $("#rtDateRangeField").val(module.settings['dateField']);
             modalSettings = module.settings['_wb'] || modalSettings;
         }
         if (!module.isLong) {
             $("[name=tweaks_includeEvent]").prop('disabled', true);
         }
+        const toggleDropCore = () => {
+            const enabled = $("[name=tweaks_fillCore]").is(':checked');
+            $("[name=tweaks_dropCoreRows]").prop('disabled', !enabled);
+            if (!enabled) $("[name=tweaks_dropCoreRows]").prop('checked', false);
+        };
+        $("[name=tweaks_fillCore]").on('change', toggleDropCore);
+        toggleDropCore();
     }
 
     /*
-    Load existing settings and populate the choices onto the page
+    Save current settings to the database
     */
     const saveSettings = () => {
 
         let settings = {};
 
         // Collect all current settings 
-        $("input[name^=tweaks_]").each((_, el) => {
-            settings[$(el).attr('name').replace('tweaks_', '')] = $(el).is(':checked')
+        $("[name^=tweaks_]").each((_, el) => {
+            const key = $(el).attr('name').replace('tweaks_', '');
+            settings[key] = $(el).is(':checkbox') ? $(el).is(':checked') : $(el).val();
         });
+        settings['merge'] = settings['reshapeMode'] === 'merge';
         settings['_wb'] = modalSettings;
         settings['dateField'] = $("#rtDateRangeField").val();
 
@@ -208,6 +228,6 @@ $(document).ready(() => {
         $("#openWriteBackModal").on('click', openModal);
         $("#save-report-btn").on('click', saveSettings);
     } else {
-        $("input[name^=tweaks_]").prop('disabled', true);
+        $("[name^=tweaks_]").prop('disabled', true);
     }
 });

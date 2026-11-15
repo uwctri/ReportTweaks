@@ -6,10 +6,21 @@ use ExternalModules\AbstractExternalModule;
 use REDCap;
 use DataExport;
 
+require_once __DIR__ . '/ReportTransformer.php';
+
 class ReportTweaks extends AbstractExternalModule
 {
     private string $jsGlobal = "";
     private array $defaultSettings = ['includeEvent' => true];
+    private ?ReportTransformer $transformer = null;
+
+    private function getTransformer(): ReportTransformer
+    {
+        if ($this->transformer === null) {
+            $this->transformer = new ReportTransformer($this);
+        }
+        return $this->transformer;
+    }
 
     /*
      * Primary REDCap hook: loads config and report page scripts.
@@ -53,6 +64,14 @@ class ReportTweaks extends AbstractExternalModule
 
         if ($action === 'save_report_config') {
             return $this->handleSaveReportConfig($project_id, $payload);
+        }
+
+        if ($action === 'export_report') {
+            return $this->handleExportReport($project_id, $payload);
+        }
+
+        if ($action === 'get_transformed_report') {
+            return $this->handleGetTransformedReport($project_id, $payload);
         }
 
         if ($action === 'writeback_execute') {
@@ -146,6 +165,157 @@ class ReportTweaks extends AbstractExternalModule
         }
 
         return $this->defaultSettings;
+    }
+
+    /*
+     * Export a report as transformed CSV (raw or labels).
+     */
+    private function handleExportReport($project_id, array $payload): array
+    {
+        $report_id = $payload['report_id'] ?? null;
+        if (empty($report_id) || (!is_numeric($report_id) && $report_id !== 'ALL')) {
+            return ['success' => false, 'error' => 'Invalid report ID'];
+        }
+
+        $user = $this->getUser();
+        $username = $user->getUsername();
+        $rights = REDCap::getUserRights($username)[$username] ?? [];
+        if (!$user->isSuperUser() && ($rights['data_export_tool'] ?? '0') === '0') {
+            return ['success' => false, 'error' => 'You do not have data export rights.'];
+        }
+
+        $format = ($payload['format'] ?? 'csvraw') === 'csvlabels' ? 'csvlabels' : 'csvraw';
+        $settings = $this->getReportConfig($project_id, $report_id);
+        if (!empty($payload['hideRepeatExport'])) {
+            $settings['hideRepeatExport'] = true;
+        }
+        if (isset($payload['includeEvent'])) {
+            $settings['includeEvent'] = (bool)$payload['includeEvent'];
+        }
+
+        $rawCsv = DataExport::doReport(
+            $report_id,
+            'export',
+            $format,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            [],
+            [],
+            false,
+            false,
+            false,
+            false, // $storeInFileRepository = false -> returns CSV string
+            true,
+            $payload['liveFilterLogic'] ?? '',
+            $payload['liveFilterGroupId'] ?? '',
+            $payload['liveFilterEventId'] ?? '',
+            false,
+            ',',
+            '',
+            [],
+            false,
+            true,
+            false,
+            false,
+            false,
+            true,
+            true,
+            $project_id
+        );
+
+        if (!is_string($rawCsv)) {
+            return ['success' => false, 'error' => 'Failed to generate report data.'];
+        }
+
+        $transformed = $this->getTransformer()->transformCsv($rawCsv, $settings, REDCap::getRecordIdField());
+        $reportTitle = is_numeric($report_id) ? (DataExport::getReports($report_id)['title'] ?? "report_{$report_id}") : 'all_data';
+        $safeTitle = preg_replace('/[^a-zA-Z0-9_-]+/', '_', $reportTitle);
+        $suffix = $format === 'csvlabels' ? 'LABELS' : 'RAW';
+        $filename = trim($safeTitle, '_') . "_tweaked_{$suffix}_" . date('Y-m-d_Hi') . ".csv";
+
+        return [
+            'success' => true,
+            'csv' => $transformed['csv'],
+            'filename' => $filename,
+            'rowCount' => count($transformed['rows']),
+        ];
+    }
+
+    /*
+     * Return server-transformed report data for on-screen DataTable rendering.
+     */
+    private function handleGetTransformedReport($project_id, array $payload): array
+    {
+        $report_id = $payload['report_id'] ?? null;
+        if (empty($report_id) || !is_numeric($report_id)) {
+            return ['success' => false, 'error' => 'Invalid report ID'];
+        }
+
+        $settings = $this->getReportConfig($project_id, $report_id);
+        $rawCsv = DataExport::doReport(
+            $report_id,
+            'export',
+            'csvlabels',
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            [],
+            [],
+            false,
+            false,
+            false,
+            false, // $storeInFileRepository = false -> returns CSV string
+            true,
+            $payload['liveFilterLogic'] ?? '',
+            $payload['liveFilterGroupId'] ?? '',
+            $payload['liveFilterEventId'] ?? '',
+            false,
+            ',',
+            '',
+            [],
+            false,
+            true,
+            false,
+            false,
+            false,
+            false, // doLoggingForExports = false for on-screen view
+            false,
+            $project_id
+        );
+
+        if (!is_string($rawCsv)) {
+            return ['success' => false, 'error' => 'Failed to load report data.'];
+        }
+
+        // For on-screen view, keep event/repeat columns in payload so toggles & writeback still work
+        $viewSettings = $settings;
+        $viewSettings['includeEvent'] = true;
+        $viewSettings['hideRepeatExport'] = false;
+
+        $transformed = $this->getTransformer()->transformCsv($rawCsv, $viewSettings, REDCap::getRecordIdField());
+
+        return [
+            'success' => true,
+            'headers' => $transformed['headers'],
+            'rows' => $transformed['rows'],
+        ];
     }
 
     /*

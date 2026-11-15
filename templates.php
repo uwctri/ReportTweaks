@@ -8,8 +8,19 @@
         <div style="margin:0 0 4px 20px;text-indent:-18px;">
             <input name="tweaks_includeEvent" type="checkbox"> <?= $this->tt('dash_event'); ?>
         </div>
+        <div style="margin:0 0 6px 20px;text-indent:-18px;">
+            <span><?= $this->tt('dash_reshape'); ?></span>
+            <select name="tweaks_reshapeMode" class="ml-1 fs12">
+                <option value="none"><?= $this->tt('dash_reshape_none'); ?></option>
+                <option value="merge"><?= $this->tt('dash_reshape_merge'); ?></option>
+                <option value="wide_pivot"><?= $this->tt('dash_reshape_wide'); ?></option>
+            </select>
+        </div>
         <div style="margin:0 0 4px 20px;text-indent:-18px;">
-            <input name="tweaks_merge" type="checkbox"> <?= $this->tt('dash_combine'); ?>
+            <input name="tweaks_fillCore" type="checkbox"> <?= $this->tt('dash_fill_core'); ?>
+            <div style="margin:2px 0 2px 20px;text-indent:-18px;">
+                <input name="tweaks_dropCoreRows" type="checkbox"> <?= $this->tt('dash_drop_core'); ?>
+            </div>
         </div>
         <div style="margin:0 0 4px 20px;text-indent:-18px;">
             <input name="tweaks_removeEmpty" type="checkbox"> <?= $this->tt('dash_empty'); ?>
@@ -167,6 +178,15 @@
     </a>
 
     <button id="rtLogic" class="report_btn jqbuttonmed ui-button ui-corner-all ui-widget" style="font-size:12px;"><i class="fas fa-filter fs10"></i> BtnLabel</button>
+
+    <div id="rtExportGroup" class="btn-group ml-1">
+        <button id="rtExportRaw" type="button" class="report_btn jqbuttonmed ui-button ui-corner-all ui-widget" style="font-size:12px;">
+            <i class="fas fa-file-csv fs10"></i> Export Tweaked CSV (Raw)
+        </button>
+        <button id="rtExportLabels" type="button" class="report_btn jqbuttonmed ui-button ui-corner-all ui-widget" style="font-size:12px;">
+            <i class="fas fa-file-csv fs10"></i> Export Tweaked CSV (Labels)
+        </button>
+    </div>
 
     <div id="rtLogicDisplay" class="collapse mt-4 mb-4 p-2 border rounded" style="background: #d3d3d3"> <code>LogicText</code></div>
 
