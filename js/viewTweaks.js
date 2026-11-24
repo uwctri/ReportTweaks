@@ -35,7 +35,7 @@ $(document).ready(() => {
         if ($(".report_pagenum_div").length) { // Pagination
             $(".report_pagenum_div").first().before($topBar);
         } else { // One Page
-            $("#report_table_wrapper").prepend($topBar);
+            $("#report_table_wrapper").before($topBar);
         }
         $("#rtCopyDataBtn").popover({
             content: module.tt("popover"),
@@ -607,12 +607,18 @@ $(document).ready(() => {
             if (!res || !res.success || !Array.isArray(res.headers)) return;
 
             const $table = $("#report_table");
-            // Capture native REDCap <th> HTML and record_id cell HTML (links + display names) before replacing table
+            if ($.fn.DataTable.isDataTable($table)) {
+                $table.DataTable().destroy();
+            }
+
+            // Capture native REDCap <th> HTML and record_id cell HTML (links + display names) after destroy() unwraps scrollX/fixedColumns
             const origHeadersHtml = {};
             const $origThs = $table.find('thead tr').first().find('th');
             Object.entries(module.headers.all || {}).forEach(([name, info]) => {
                 if (info && Number.isInteger(info.index) && $origThs.eq(info.index).length) {
-                    origHeadersHtml[name] = $origThs.eq(info.index).html();
+                    const $th = $origThs.eq(info.index);
+                    const $sizing = $th.children('.dataTables_sizing');
+                    origHeadersHtml[name] = $sizing.length ? $sizing.html() : $th.html();
                 }
             });
 
@@ -642,10 +648,6 @@ $(document).ready(() => {
                         recordCellHtmlMap[recId] = $td.html();
                     }
                 });
-            }
-
-            if ($.fn.DataTable.isDataTable($table)) {
-                $table.DataTable().destroy();
             }
 
             const escapeHtml = (str) => $('<div>').text(str ?? '').html();
@@ -701,18 +703,33 @@ $(document).ready(() => {
                 }
             });
 
-            // Re-populate range filter dropdown with updated headers
-            const $pivot = $('#minmaxpivot');
-            if ($pivot.length) {
-                $pivot.find('option:not(:first)').remove();
-                res.headers.forEach((h) => $pivot.append(new Option(h, h)));
-            }
-
-            $table.DataTable({
+            const dt = $table.DataTable({
                 paging: rowsToRender.length > 500,
                 pageLength: 500,
                 order: []
             });
+
+            // Re-attach DataTables search filter into REDCap's top bar and restore #rtFilters
+            const $filterParent = $(".dataTables-rc-searchfilter-parent .dataTables_filter-parent");
+            if ($filterParent.length && $("#report_table_filter").length) {
+                $filterParent.empty().append($("#report_table_filter").detach());
+            }
+            $("#report_table_filter > label input").addClass('form-control form-control-sm').attr('placeholder', 'Search...');
+            if (!$("#rtFilters").length && $("#report_table_filter").length) {
+                $("#report_table_filter").prepend(templates.rtFilters);
+                $('#minmaxpivot').on('change', () => dt.draw());
+                $('#tableFilterMin, #tableFilterMax').on('keyup change', () => dt.draw());
+            }
+
+            // Re-populate range filter dropdown with updated headers
+            const $pivot = $('#minmaxpivot');
+            if ($pivot.length) {
+                $pivot.find('option:not(:first)').remove();
+                res.headers.forEach((h) => {
+                    if (h === 'record_id' && module.record_id !== 'record_id') return;
+                    $pivot.append(new Option(h, h));
+                });
+            }
 
             $("#report_div span").first().text(rowsToRender.length);
             if (!module.settings.includeEvent || $("#hideEventCol").is(':checked')) {
