@@ -15,7 +15,6 @@ $(document).ready(() => {
 
     const setupCollapse = () => {
         const desc = $("#this_report_description");
-        console.log("hit")
         if ((desc.length < 1) || (desc.height() < 160) || desc.hasClass("report_collapse"))
             return;
         desc.addClass("report_collapse");
@@ -31,6 +30,7 @@ $(document).ready(() => {
     of report format.
     */
     const insertCopyBtn = () => {
+        $("#rtTableTopBar").remove();
         const $topBar = $('<div id="rtTableTopBar"></div>').append(templates.rtCopyDataBtn);
         if ($(".report_pagenum_div").length) { // Pagination
             $(".report_pagenum_div").first().before($topBar);
@@ -98,7 +98,10 @@ $(document).ready(() => {
 
         // Populate the pivot drop down
         let dropdown = $('#minmaxpivot');
-        Object.keys(module.headers.all).forEach((el) => dropdown.append(new Option(el, el)));
+        Object.keys(module.headers.all).forEach((el) => {
+            if (el === 'record_id' && module.record_id !== 'record_id') return;
+            dropdown.append(new Option(el, el));
+        });
 
         // Add the search function
         $.fn.dataTable.ext.search.push(rangeSearch);
@@ -441,7 +444,11 @@ $(document).ready(() => {
         }
 
         // Gather the data for the row
-        let datum = data[module.headers.all[field]?.index] || 0;
+        let rawDatum = data[module.headers.all[field]?.index];
+        if (rawDatum === undefined || rawDatum === null || String(rawDatum).trim() === '') {
+            return (min === "" && max === "") || (field === "");
+        }
+        let datum = String(rawDatum);
         datum = field == module.record_id ? datum.split(' ')[0] : datum;
 
         // Col data could be non-ymd
@@ -654,7 +661,11 @@ $(document).ready(() => {
                 return `<th><div>${escapeHtml(h)}</div></th>`;
             }).join('') + '</tr>';
 
-            const tbodyHtml = res.rows.map(row =>
+            const rowsToRender = (typeof liveFiltersSelected === 'function' && liveFiltersSelected() && !$(".report_pagenum_div").length && Object.keys(recordCellHtmlMap).length > 0 && newRecordIdIdx !== -1)
+                ? res.rows.filter(row => recordCellHtmlMap[String(row[newRecordIdIdx] ?? '')] !== undefined)
+                : res.rows;
+
+            const tbodyHtml = rowsToRender.map(row =>
                 '<tr>' + row.map((cell, colIdx) => {
                     if (colIdx === newRecordIdIdx) {
                         const key = String(cell ?? '');
@@ -698,12 +709,12 @@ $(document).ready(() => {
             }
 
             $table.DataTable({
-                paging: res.rows.length > 500,
+                paging: rowsToRender.length > 500,
                 pageLength: 500,
                 order: []
             });
 
-            $("#report_div span").first().text(res.rows.length);
+            $("#report_div span").first().text(rowsToRender.length);
             if (!module.settings.includeEvent || $("#hideEventCol").is(':checked')) {
                 toggleEventCol(false);
             }
@@ -833,12 +844,21 @@ $(document).ready(() => {
             return;
         }
 
-        if ($("#rtCopyDataBtn").length) { // Stop double loading on animation lag
+        if ($("#report_table").data('rtLoaded')) { // Stop double loading on animation lag
             return;
         }
+        $("#report_table").data('rtLoaded', true);
 
-        // Filter out any null values
+        // Filter out any null values and sync core column indices with actual DOM headers if variable names are present
         module.headers.core = Object.fromEntries(Object.entries(module.headers.core).filter(pair => isInteger(pair[1])));
+        $("#report_table thead tr").first().find('th').each((idx, th) => {
+            const text = $(th).text();
+            ['redcap_event_name', 'redcap_repeat_instrument', 'redcap_repeat_instance'].forEach((coreKey) => {
+                if (text.includes(coreKey)) {
+                    module.headers.core[coreKey] = idx;
+                }
+            });
+        });
 
         // Build checkboxes & hook Export Data modal
         insertCopyBtn();
