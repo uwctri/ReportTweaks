@@ -600,15 +600,74 @@ $(document).ready(() => {
             if (!res || !res.success || !Array.isArray(res.headers)) return;
 
             const $table = $("#report_table");
+            // Capture native REDCap <th> HTML and record_id cell HTML (links + display names) before replacing table
+            const origHeadersHtml = {};
+            const $origThs = $table.find('thead tr').first().find('th');
+            Object.entries(module.headers.all || {}).forEach(([name, info]) => {
+                if (info && Number.isInteger(info.index) && $origThs.eq(info.index).length) {
+                    origHeadersHtml[name] = $origThs.eq(info.index).html();
+                }
+            });
+
+            const origRecordIdIdx = module.headers.core?.record_id;
+            const recordCellHtmlMap = {};
+            let recordLinkTemplate = null;
+            if (Number.isInteger(origRecordIdIdx)) {
+                $table.find('tbody tr').each((_, tr) => {
+                    const $td = $(tr).children('td').eq(origRecordIdIdx);
+                    if (!$td.length) return;
+                    const $a = $td.find('a').first();
+                    let recId = '';
+                    if ($a.length && $a.attr('href')) {
+                        const href = $a.attr('href');
+                        const match = href.match(/([?&]id=)([^&]+)/);
+                        if (match) {
+                            recId = decodeURIComponent(match[2]);
+                            if (!recordLinkTemplate) {
+                                recordLinkTemplate = href.replace(/([?&]id=)([^&]+)/, '$1__RT_RECORD_ID__');
+                            }
+                        }
+                    }
+                    if (!recId) {
+                        recId = $td.text().trim().split(' ')[0];
+                    }
+                    if (recId && !recordCellHtmlMap[recId]) {
+                        recordCellHtmlMap[recId] = $td.html();
+                    }
+                });
+            }
+
             if ($.fn.DataTable.isDataTable($table)) {
                 $table.DataTable().destroy();
             }
 
             const escapeHtml = (str) => $('<div>').text(str ?? '').html();
+            let newRecordIdIdx = res.headers.indexOf(module.record_id);
+            if (newRecordIdIdx === -1) {
+                newRecordIdIdx = res.headers.indexOf('record_id');
+            }
 
-            const theadHtml = '<tr>' + res.headers.map(h => `<th><div>${escapeHtml(h)}</div></th>`).join('') + '</tr>';
+            const theadHtml = '<tr>' + res.headers.map(h => {
+                if (origHeadersHtml[h]) {
+                    return `<th>${origHeadersHtml[h]}</th>`;
+                }
+                return `<th><div>${escapeHtml(h)}</div></th>`;
+            }).join('') + '</tr>';
+
             const tbodyHtml = res.rows.map(row =>
-                '<tr>' + row.map(cell => `<td>${escapeHtml(cell)}</td>`).join('') + '</tr>'
+                '<tr>' + row.map((cell, colIdx) => {
+                    if (colIdx === newRecordIdIdx) {
+                        const key = String(cell ?? '');
+                        if (recordCellHtmlMap[key]) {
+                            return `<td>${recordCellHtmlMap[key]}</td>`;
+                        }
+                        if (recordLinkTemplate && key !== '') {
+                            const href = recordLinkTemplate.replace('__RT_RECORD_ID__', encodeURIComponent(key));
+                            return `<td><a href="${escapeHtml(href)}">${escapeHtml(key)}</a></td>`;
+                        }
+                    }
+                    return `<td>${escapeHtml(cell)}</td>`;
+                }).join('') + '</tr>'
             ).join('');
 
             $table.find('thead').html(theadHtml);
@@ -645,7 +704,7 @@ $(document).ready(() => {
             });
 
             $("#report_div span").first().text(res.rows.length);
-            if (!module.settings.includeEvent) {
+            if (!module.settings.includeEvent || $("#hideEventCol").is(':checked')) {
                 toggleEventCol(false);
             }
             if ($("#hideRepeatCols").is(':checked')) {
