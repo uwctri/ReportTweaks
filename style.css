@@ -38,6 +38,17 @@
     color: #212529;
 }
 
+.dataTables-rc-searchfilter-parent {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    margin-bottom: 8px;
+    justify-content: flex-end;
+}
+
+.dataTables-rc-searchfilter-parent > .col-auto {
+    padding-right: 0;
+}
+
 #report_table_filter {
     display: flex;
     flex-wrap: wrap;
