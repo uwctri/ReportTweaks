@@ -692,11 +692,21 @@ class ReportTweaks extends AbstractExternalModule
 
     private function includeJs(string $path): void
     {
-        echo "<script src=\"" . htmlspecialchars($this->getUrl("js/{$path}"), ENT_QUOTES) . "\"></script>";
+        $url = $this->getUrl("js/{$path}");
+        $fullPath = $this->getModulePath() . "js/{$path}";
+        if (file_exists($fullPath)) {
+            $url .= (str_contains($url, '?') ? '&' : '?') . 'v=' . filemtime($fullPath);
+        }
+        echo "<script src=\"" . htmlspecialchars($url, ENT_QUOTES) . "\"></script>";
     }
 
     private function includeCSS(): void
     {
-        echo "<link rel=\"stylesheet\" href=\"" . htmlspecialchars($this->getUrl("style.css"), ENT_QUOTES) . "\">";
+        $url = $this->getUrl("style.css");
+        $fullPath = $this->getModulePath() . "style.css";
+        if (file_exists($fullPath)) {
+            $url .= (str_contains($url, '?') ? '&' : '?') . 'v=' . filemtime($fullPath);
+        }
+        echo "<link rel=\"stylesheet\" href=\"" . htmlspecialchars($url, ENT_QUOTES) . "\">";
     }
 }
