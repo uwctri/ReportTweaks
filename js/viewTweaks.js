@@ -789,12 +789,11 @@ $(document).ready(() => {
         if (tableWidth) {
             if ($(".report_pagenum_div").length) {
                 $(".report_pagenum_div").css('width', tableWidth + 'px');
+            } else if ($("#report_table_wrapper").length) {
+                $("#report_table_wrapper").css('width', tableWidth + 'px');
             }
             if ($("#rtTableTopBar").length) {
                 $("#rtTableTopBar").css('width', tableWidth + 'px');
-            }
-            if ($(".dataTables-rc-searchfilter-parent").length) {
-                $(".dataTables-rc-searchfilter-parent").css('width', tableWidth + 'px');
             }
             if ($("table.fixedHeader-floating").length) {
                 $("table.fixedHeader-floating").css('width', tableWidth + 'px');

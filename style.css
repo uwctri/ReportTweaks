@@ -6,6 +6,11 @@
     border-color: #eee;
 }
 
+#rtTableTopBar,
+.report_pagenum_div {
+    box-sizing: border-box;
+}
+
 #rtTableTopBar {
     display: flex;
     justify-content: space-between;
@@ -55,6 +60,7 @@
     align-items: center;
     justify-content: flex-end;
     gap: 8px;
+    margin-bottom: 8px;
 }
 
 #report_table_filter > label {
