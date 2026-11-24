@@ -313,8 +313,8 @@ class ReportTweaks extends AbstractExternalModule
         $rawCsv = DataExport::doReport(
             $report_id,
             'export',
-            'csvlabels',
-            false,
+            'csv',
+            true,
             false,
             false,
             false,
@@ -335,7 +335,7 @@ class ReportTweaks extends AbstractExternalModule
             $payload['liveFilterLogic'] ?? '',
             $payload['liveFilterGroupId'] ?? '',
             $payload['liveFilterEventId'] ?? '',
-            false,
+            true, // $isDeveloper = true so csv format respects $apiExportLabels=true with raw variable name headers
             ',',
             '',
             [],
@@ -692,21 +692,11 @@ class ReportTweaks extends AbstractExternalModule
 
     private function includeJs(string $path): void
     {
-        $url = $this->getUrl("js/{$path}");
-        $fullPath = $this->getModulePath() . "js/{$path}";
-        if (file_exists($fullPath)) {
-            $url .= (str_contains($url, '?') ? '&' : '?') . 'v=' . filemtime($fullPath);
-        }
-        echo "<script src=\"" . htmlspecialchars($url, ENT_QUOTES) . "\"></script>";
+        echo "<script src=\"" . htmlspecialchars($this->getUrl("js/{$path}"), ENT_QUOTES) . "\"></script>";
     }
 
     private function includeCSS(): void
     {
-        $url = $this->getUrl("style.css");
-        $fullPath = $this->getModulePath() . "style.css";
-        if (file_exists($fullPath)) {
-            $url .= (str_contains($url, '?') ? '&' : '?') . 'v=' . filemtime($fullPath);
-        }
-        echo "<link rel=\"stylesheet\" href=\"" . htmlspecialchars($url, ENT_QUOTES) . "\">";
+        echo "<link rel=\"stylesheet\" href=\"" . htmlspecialchars($this->getUrl("style.css"), ENT_QUOTES) . "\">";
     }
 }
